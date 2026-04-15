@@ -17,24 +17,28 @@ export async function middleware(req: NextRequest) {
     res.headers.set('x-tenant-slug', tenantSlug)
   }
 
-  // Ochrana admin routes
-  if (req.nextUrl.pathname.startsWith('/admin') && req.nextUrl.pathname !== '/admin/login') {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder',
-      {
-        cookies: {
-          getAll() {
-            return req.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              res.cookies.set(name, value, options),
-            )
-          },
+  // Ochrana admin routes (preskočí ak nie sú nastavené env vars — napr. počas buildu)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (
+    supabaseUrl &&
+    supabaseKey &&
+    req.nextUrl.pathname.startsWith('/admin') &&
+    req.nextUrl.pathname !== '/admin/login'
+  ) {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options),
+          )
         },
       },
-    )
+    })
 
     const { data: { user } } = await supabase.auth.getUser()
 
