@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Pencil, Trash2, Globe, FileText, Home } from 'lucide-react'
+import { Plus, Pencil, Trash2, Globe, FileText, Home, LayoutTemplate } from 'lucide-react'
 
 interface Page {
   id: string
@@ -110,6 +110,13 @@ export default function StrankyPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/admin/stranky/${page.id}/builder`}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      >
+                        <LayoutTemplate size={13} />
+                        Builder
+                      </Link>
                       <Link
                         href={`/admin/stranky/${page.id}/upravit`}
                         className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
