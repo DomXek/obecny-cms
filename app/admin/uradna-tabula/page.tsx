@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { OfficialNotice } from '@/lib/supabase/types'
 import { format, formatDistanceToNow } from 'date-fns'
 import { sk } from 'date-fns/locale'
@@ -26,17 +25,12 @@ export default function AdminUradnaTabulaPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  const supabase = createClient()
-
   const loadNotices = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
     const res = await fetch('/api/admin/notices?limit=50')
     const json = await res.json() as { data: OfficialNotice[] }
     setNotices(json.data ?? [])
     setLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     loadNotices()
