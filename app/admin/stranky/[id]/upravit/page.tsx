@@ -16,6 +16,7 @@ export default async function UpravitStranku({ params }: { params: Promise<{ id:
         id: data.id,
         title: data.title,
         slug: data.slug,
+        content: data.content ?? '',
         meta_title: data.meta_title ?? '',
         meta_description: data.meta_description ?? '',
         is_published: data.is_published,
