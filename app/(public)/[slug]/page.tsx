@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ preview?: string }>
 }
 
 function renderLayout(layout: PageLayout) {
@@ -58,16 +59,16 @@ function renderLayout(layout: PageLayout) {
   )
 }
 
-export default async function PublicPage({ params }: Props) {
+export default async function PublicPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const { preview } = await searchParams
+  const isPreview = preview === '1'
   const supabase = createServiceClient()
 
-  const { data: page, error } = await supabase
-    .from('pages')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true)
-    .single()
+  let query = supabase.from('pages').select('*').eq('slug', slug)
+  if (!isPreview) query = query.eq('is_published', true)
+
+  const { data: page, error } = await query.single()
 
   if (error || !page) notFound()
 

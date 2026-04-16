@@ -458,7 +458,7 @@ export default function Builder({
         </div>
 
         <div className="flex items-center gap-2">
-          <a href={`/${pageSlug}`} target="_blank" rel="noopener noreferrer"
+          <a href={`/${pageSlug}?preview=1`} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             <Eye size={14} /> Zobraziť
           </a>
