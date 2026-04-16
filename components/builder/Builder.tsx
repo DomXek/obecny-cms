@@ -10,6 +10,7 @@ import {
   PageLayout, NavPosition, Section, HeroConfig, WidgetType,
   WIDGETS, DEFAULT_LAYOUT,
 } from './types'
+import TextWidgetEditor from './widgets/TextWidgetEditor'
 
 // ─── Nav Block ────────────────────────────────────────────────────────────────
 
@@ -186,13 +187,14 @@ function SectionBlock({
   onMoveDown: () => void
 }) {
   const [picking, setPicking] = useState<number | null>(null)
+  const [editing, setEditing] = useState<number | null>(null)
   const isTwoCol = section.columns.length === 2
 
   function split() {
     onChange({
       ...section,
       columns: [
-        { width: 50, widget: section.columns[0].widget },
+        { width: 50, widget: section.columns[0].widget, content: section.columns[0].content },
         { width: 50, widget: 'empty' },
       ],
     })
@@ -203,12 +205,30 @@ function SectionBlock({
   }
 
   function setWidget(colIdx: number, widget: WidgetType) {
-    const cols = section.columns.map((c, i) => i === colIdx ? { ...c, widget } : c)
+    const cols = section.columns.map((c, i) =>
+      i === colIdx ? { ...c, widget, content: {} } : c
+    )
     onChange({ ...section, columns: cols })
     setPicking(null)
+    if (widget === 'text') setEditing(colIdx)
   }
 
-  // Handle column resize via absolute position in the row
+  function setContent(colIdx: number, html: string) {
+    const cols = section.columns.map((c, i) =>
+      i === colIdx ? { ...c, content: { ...c.content, html } } : c
+    )
+    onChange({ ...section, columns: cols })
+  }
+
+  function handleColClick(colIdx: number) {
+    const col = section.columns[colIdx]
+    if (col.widget === 'text') {
+      setEditing(colIdx)
+    } else {
+      setPicking(colIdx)
+    }
+  }
+
   function onHandleMouseDown(e: React.MouseEvent) {
     e.preventDefault()
     const onMove = (e: MouseEvent) => {
@@ -263,36 +283,82 @@ function SectionBlock({
       </div>
 
       {/* Columns */}
-      <div className="flex min-h-[100px] relative" ref={rowRef}>
+      <div className="flex min-h-[120px] relative" ref={rowRef}>
         {section.columns.map((col, i) => {
           const w = WIDGETS[col.widget]
+          const isText = col.widget === 'text'
+          const hasContent = isText && col.content?.html
+
           return (
             <div
               key={i}
-              className={`relative flex items-center justify-center cursor-pointer transition-opacity hover:opacity-90 ${w.bg}`}
+              className={`relative cursor-pointer transition-colors ${
+                isText && hasContent
+                  ? 'bg-white hover:bg-gray-50'
+                  : `${w.bg} flex items-center justify-center hover:opacity-90`
+              }`}
               style={{ width: `${col.width}%` }}
-              onClick={() => setPicking(i)}
+              onClick={() => editing !== i && handleColClick(i)}
             >
-              <div className={`text-center select-none ${w.text}`}>
-                <div className="text-2xl mb-1">{w.icon}</div>
-                <div className="text-xs font-semibold">{w.label}</div>
-                {isTwoCol && (
-                  <div className="text-xs opacity-50 mt-0.5">{Math.round(col.width)}%</div>
-                )}
-              </div>
+              {/* Text widget: show content preview or placeholder */}
+              {isText ? (
+                hasContent ? (
+                  <div
+                    className="p-4 prose prose-sm max-w-none w-full pointer-events-none"
+                    dangerouslySetInnerHTML={{ __html: col.content!.html! }}
+                  />
+                ) : (
+                  <div className={`text-center select-none ${w.text}`}>
+                    <div className="text-2xl mb-1">{w.icon}</div>
+                    <div className="text-xs font-semibold">{w.label}</div>
+                    <div className="text-xs opacity-60 mt-1">Kliknite pre editáciu</div>
+                  </div>
+                )
+              ) : (
+                <div className={`text-center select-none ${w.text}`}>
+                  <div className="text-2xl mb-1">{w.icon}</div>
+                  <div className="text-xs font-semibold">{w.label}</div>
+                  {isTwoCol && (
+                    <div className="text-xs opacity-50 mt-0.5">{Math.round(col.width)}%</div>
+                  )}
+                </div>
+              )}
 
+              {/* Widget picker overlay */}
               {picking === i && (
                 <WidgetPicker
                   onSelect={widget => setWidget(i, widget)}
                   onClose={() => setPicking(null)}
                 />
               )}
+
+              {/* Text editor overlay */}
+              {editing === i && (
+                <TextWidgetEditor
+                  html={col.content?.html ?? ''}
+                  onChange={html => setContent(i, html)}
+                  onDone={() => setEditing(null)}
+                />
+              )}
+
+              {/* Change widget button (shown on hover for non-empty, non-editing) */}
+              {col.widget !== 'empty' && editing !== i && picking !== i && (
+                <button
+                  onClick={e => { e.stopPropagation(); setPicking(i) }}
+                  className="absolute top-2 right-2 px-2 py-1 text-xs bg-white/80 hover:bg-white border border-gray-200 rounded-md text-gray-500 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                  style={{ opacity: undefined }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = '')}
+                >
+                  Zmeniť
+                </button>
+              )}
             </div>
           )
         })}
 
         {/* Column resize handle */}
-        {isTwoCol && (
+        {isTwoCol && editing === null && (
           <div
             onMouseDown={onHandleMouseDown}
             className="absolute top-0 bottom-0 w-5 flex items-center justify-center cursor-ew-resize group z-10"

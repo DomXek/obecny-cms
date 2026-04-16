@@ -10,9 +10,15 @@ export type WidgetType =
   | 'contact'
   | 'documents'
 
+export interface ColumnContent {
+  html?: string
+  [key: string]: unknown
+}
+
 export interface Column {
   width: number // percentage 0–100
   widget: WidgetType
+  content?: ColumnContent
 }
 
 export interface Section {

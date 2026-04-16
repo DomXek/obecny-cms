@@ -35,13 +35,18 @@ function renderLayout(layout: PageLayout) {
               return (
                 <div
                   key={i}
-                  className={`rounded-xl p-6 ${w.bg} ${w.text}`}
+                  className="rounded-xl overflow-hidden"
                   style={{ width: `${col.width}%` }}
                 >
-                  {col.widget === 'empty' ? (
-                    <div className="text-center text-gray-300 py-8 text-sm">Prázdny blok</div>
-                  ) : (
-                    <div className="text-center font-semibold">{w.icon} {w.label}</div>
+                  {col.widget === 'text' ? (
+                    <div
+                      className="prose prose-gray prose-lg max-w-none p-2"
+                      dangerouslySetInnerHTML={{ __html: col.content?.html ?? '' }}
+                    />
+                  ) : col.widget === 'empty' ? null : (
+                    <div className={`p-6 rounded-xl ${w.bg} ${w.text} text-center font-semibold`}>
+                      {w.icon} {w.label}
+                    </div>
                   )}
                 </div>
               )
