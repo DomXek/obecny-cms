@@ -1,69 +1,81 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    setLoading(true)
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-    const { error } = await res.json() as { error?: string }
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (!res.ok || error) {
+    if (error) {
       setError('Nesprávny email alebo heslo')
       setLoading(false)
       return
     }
 
-    router.push('/admin/uradna-tabula')
+    router.push('/admin')
+    router.refresh()
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 w-full max-w-sm">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Obecný CMS</h1>
-        <p className="text-sm text-gray-500 mb-6">Prihlásenie do administrácie</p>
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Logo area */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4">
+            <span className="text-white text-2xl">🏛</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white">Obecný CMS</h1>
+          <p className="text-gray-500 text-sm mt-1">Prihláste sa do administrácie</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-400 mb-1.5">Email</label>
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+              className="w-full bg-gray-900 border border-gray-800 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+              placeholder="admin@obec.sk"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Heslo</label>
+            <label className="block text-sm font-medium text-gray-400 mb-1.5">Heslo</label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-gray-900 border border-gray-800 text-white rounded-xl px-4 py-3 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+              placeholder="••••••••"
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          {error && (
+            <p className="text-red-400 text-sm text-center bg-red-900/20 rounded-lg py-2 px-3">{error}</p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-colors mt-2"
           >
-            {loading ? 'Prihlasujem...' : 'Prihlásiť sa'}
+            {loading ? 'Prihlasovanie...' : 'Prihlásiť sa'}
           </button>
         </form>
       </div>
