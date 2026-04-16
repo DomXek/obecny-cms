@@ -7,10 +7,11 @@ import {
   Trash2, ChevronUp, ChevronDown, Columns, GripVertical,
 } from 'lucide-react'
 import {
-  PageLayout, NavPosition, Section, HeroConfig, WidgetType,
-  WIDGETS, DEFAULT_LAYOUT,
+  PageLayout, NavPosition, Section, SimpleSection, GridSection, HeroConfig, WidgetType,
+  WIDGETS, DEFAULT_LAYOUT, makeDefaultGrid,
 } from './types'
 import TextWidgetEditor from './widgets/TextWidgetEditor'
+import GridSectionBlock from './GridSectionBlock'
 
 // ─── Nav Block ────────────────────────────────────────────────────────────────
 
@@ -260,11 +261,11 @@ function SectionBlock({
   onMoveUp,
   onMoveDown,
 }: {
-  section: Section
+  section: SimpleSection
   isFirst: boolean
   isLast: boolean
   rowRef: React.RefObject<HTMLDivElement>
-  onChange: (s: Section) => void
+  onChange: (s: SimpleSection) => void
   onDelete: () => void
   onMoveUp: () => void
   onMoveDown: () => void
@@ -474,6 +475,7 @@ export default function Builder({
   const [layout, setLayout] = useState<PageLayout>(initialLayout ?? DEFAULT_LAYOUT)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState(false)
+  const [addMenu, setAddMenu] = useState(false)
 
   // refs per row (for column resize — track container width)
   const rowRefs = useRef<Map<string, React.RefObject<HTMLDivElement>>>(new Map())
@@ -484,14 +486,9 @@ export default function Builder({
     return rowRefs.current.get(id)!
   }
 
-  function addSection() {
-    setLayout(l => ({
-      ...l,
-      sections: [
-        ...l.sections,
-        { id: crypto.randomUUID(), columns: [{ width: 100, widget: 'empty' }] },
-      ],
-    }))
+  function addSection(cols: 2 | 3 | 4 = 2) {
+    setLayout(l => ({ ...l, sections: [...l.sections, makeDefaultGrid(cols)] }))
+    setAddMenu(false)
   }
 
   function updateSection(id: string, updated: Section) {
@@ -570,27 +567,57 @@ export default function Builder({
             onChange={hero => setLayout(l => ({ ...l, hero }))}
           />
 
-          {layout.sections.map((section, idx) => (
-            <SectionBlock
-              key={section.id}
-              section={section}
-              isFirst={idx === 0}
-              isLast={idx === layout.sections.length - 1}
-              rowRef={getRowRef(section.id) as React.RefObject<HTMLDivElement>}
-              onChange={s => updateSection(section.id, s)}
-              onDelete={() => deleteSection(section.id)}
-              onMoveUp={() => moveSection(section.id, -1)}
-              onMoveDown={() => moveSection(section.id, 1)}
-            />
-          ))}
+          {layout.sections.map((section, idx) => {
+            const common = {
+              isFirst: idx === 0,
+              isLast: idx === layout.sections.length - 1,
+              onDelete: () => deleteSection(section.id),
+              onMoveUp: () => moveSection(section.id, -1),
+              onMoveDown: () => moveSection(section.id, 1),
+            }
+            if ('mode' in section && section.mode === 'grid') {
+              return (
+                <GridSectionBlock
+                  key={section.id}
+                  {...common}
+                  section={section as GridSection}
+                  onChange={s => updateSection(section.id, s)}
+                />
+              )
+            }
+            return (
+              <SectionBlock
+                key={section.id}
+                {...common}
+                section={section as SimpleSection}
+                rowRef={getRowRef(section.id) as React.RefObject<HTMLDivElement>}
+                onChange={s => updateSection(section.id, s)}
+              />
+            )
+          })}
 
-          <button
-            onClick={addSection}
-            className="w-full py-5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 mt-1"
-          >
-            <Plus size={16} />
-            Pridať sekciu
-          </button>
+          {/* Add section button + column picker */}
+          <div className="relative mt-1">
+            <button
+              onClick={() => setAddMenu(v => !v)}
+              className="w-full py-5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Pridať sekciu
+            </button>
+            {addMenu && (
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-3 flex gap-2 items-center">
+                <span className="text-xs text-gray-500 mr-1">Počet stĺpcov:</span>
+                {([2, 3, 4] as const).map(n => (
+                  <button key={n} onClick={() => addSection(n)}
+                    className="w-10 h-10 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm font-semibold text-gray-700 transition-colors flex items-center justify-center">
+                    {n}
+                  </button>
+                ))}
+                <button onClick={() => setAddMenu(false)} className="ml-1 text-gray-400 hover:text-gray-600"><X size={14} /></button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

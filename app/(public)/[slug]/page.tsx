@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import GovHeader from '@/components/template/GovHeader'
 import GovFooter from '@/components/template/GovFooter'
-import { PageLayout, WIDGETS } from '@/components/builder/types'
+import { PageLayout, GridSection, WIDGETS, getTotalRows } from '@/components/builder/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,31 +29,63 @@ function renderLayout(layout: PageLayout) {
 
       {/* Sections */}
       <div className="max-w-6xl mx-auto px-6 py-10 w-full space-y-8">
-        {layout.sections.map(section => (
-          <div key={section.id} className="flex gap-6">
-            {section.columns.map((col, i) => {
-              const w = WIDGETS[col.widget]
-              return (
-                <div
-                  key={i}
-                  className="rounded-xl overflow-hidden"
-                  style={{ width: `${col.width}%` }}
-                >
-                  {col.widget === 'text' ? (
-                    <div
-                      className="prose prose-gray prose-lg max-w-none p-2"
-                      dangerouslySetInnerHTML={{ __html: col.content?.html ?? '' }}
-                    />
-                  ) : col.widget === 'empty' ? null : (
-                    <div className={`p-6 rounded-xl ${w.bg} ${w.text} text-center font-semibold`}>
-                      {w.icon} {w.label}
+        {layout.sections.map(section => {
+          // Grid section
+          if ('mode' in section && section.mode === 'grid') {
+            const gs = section as GridSection
+            const totalRows = getTotalRows(gs.cells)
+            return (
+              <div key={gs.id} style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${gs.cols}, 1fr)`,
+                gridTemplateRows: `repeat(${totalRows}, auto)`,
+                gap: '16px',
+              }}>
+                {gs.cells.map(cell => {
+                  const w = WIDGETS[cell.widget]
+                  return (
+                    <div key={cell.id} style={{
+                      gridColumn: `${cell.col + 1} / ${cell.col + cell.colSpan + 1}`,
+                      gridRow: `${cell.row + 1} / ${cell.row + cell.rowSpan + 1}`,
+                    }}>
+                      {cell.widget === 'empty' ? null
+                        : cell.widget === 'text' ? (
+                          <div className="prose prose-gray prose-lg max-w-none"
+                            dangerouslySetInnerHTML={{ __html: cell.content?.html ?? '' }} />
+                        ) : (
+                          <div className={`p-6 rounded-xl ${w.bg} ${w.text} text-center font-semibold h-full`}>
+                            {w.icon} {w.label}
+                          </div>
+                        )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        ))}
+                  )
+                })}
+              </div>
+            )
+          }
+
+          // Simple section (legacy)
+          const s = section as import('@/components/builder/types').SimpleSection
+          return (
+            <div key={s.id} className="flex gap-6">
+              {s.columns.map((col, i) => {
+                const w = WIDGETS[col.widget]
+                return (
+                  <div key={i} className="rounded-xl overflow-hidden" style={{ width: `${col.width}%` }}>
+                    {col.widget === 'text' ? (
+                      <div className="prose prose-gray prose-lg max-w-none p-2"
+                        dangerouslySetInnerHTML={{ __html: col.content?.html ?? '' }} />
+                    ) : col.widget === 'empty' ? null : (
+                      <div className={`p-6 rounded-xl ${w.bg} ${w.text} text-center font-semibold`}>
+                        {w.icon} {w.label}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
       </div>
     </>
   )

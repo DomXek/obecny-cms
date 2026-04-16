@@ -13,11 +13,12 @@ interface Props {
 
 export default function TextWidgetEditor({ html, onChange, onDone }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
+  const initialHtml = useRef(html)
 
   useEffect(() => {
     const el = editorRef.current
     if (!el) return
-    el.innerHTML = html || ''
+    el.innerHTML = initialHtml.current || ''
     // focus at end
     const range = document.createRange()
     const sel = window.getSelection()

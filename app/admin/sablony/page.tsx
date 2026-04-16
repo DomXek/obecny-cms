@@ -87,25 +87,24 @@ export default function SablonyPage() {
 
               {/* Sections preview */}
               <div className="space-y-1.5 mb-5">
-                {tpl.layout.sections.map((sec, i) => (
-                  <div key={i} className="flex gap-1">
-                    {sec.columns.map((col, j) => (
-                      <div
-                        key={j}
-                        className="h-6 rounded text-xs flex items-center justify-center font-medium bg-gray-100 text-gray-500"
-                        style={{ width: `${col.width}%` }}
-                      >
-                        {col.widget === 'text' ? '¶' :
-                         col.widget === 'notices' ? '📋' :
-                         col.widget === 'news' ? '📰' :
-                         col.widget === 'events' ? '📅' :
-                         col.widget === 'gallery' ? '🖼' :
-                         col.widget === 'contact' ? '✉️' :
-                         col.widget === 'documents' ? '📄' : '□'}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                {tpl.layout.sections.map((sec, i) => {
+                  const cells = 'cells' in sec ? sec.cells.filter(c => c.row === 0) : []
+                  const cols = 'cols' in sec ? sec.cols : 1
+                  return (
+                    <div key={i} className="flex gap-1">
+                      {cells.map((cell, j) => (
+                        <div key={j}
+                          className="h-6 rounded text-xs flex items-center justify-center font-medium bg-gray-100 text-gray-500"
+                          style={{ width: `${(cell.colSpan / cols) * 100}%` }}>
+                          {cell.widget === 'text' ? '¶' : cell.widget === 'notices' ? '📋' :
+                           cell.widget === 'news' ? '📰' : cell.widget === 'events' ? '📅' :
+                           cell.widget === 'gallery' ? '🖼' : cell.widget === 'contact' ? '✉️' :
+                           cell.widget === 'documents' ? '📄' : '□'}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
 
               <button
