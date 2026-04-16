@@ -91,7 +91,8 @@ export default async function PublicPage({ params, searchParams }: Props) {
     <div className="min-h-screen bg-[#f8f8f8] flex flex-col">
       <GovHeader
         municipalityName={municipalityName}
-        nav={navPages ?? []}
+        navConfig={layout?.nav ?? null}
+        allPages={(navPages ?? []).map(p => ({ title: p.title, slug: p.slug }))}
         currentSlug={slug}
       />
 

@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { FileText, LogOut } from 'lucide-react'
+import { FileText, LogOut, LayoutTemplate } from 'lucide-react'
 
 const navItems = [
   { href: '/admin/stranky', label: 'Stránky', icon: FileText },
+  { href: '/admin/sablony', label: 'Šablóny', icon: LayoutTemplate },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

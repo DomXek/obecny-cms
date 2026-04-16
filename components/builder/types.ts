@@ -32,8 +32,18 @@ export interface HeroConfig {
   subtitle: string
 }
 
+export interface NavItem {
+  slug: string
+  label: string
+}
+
+export interface NavConfig {
+  position: NavPosition
+  items?: NavItem[] // ak undefined → zobrazí všetky publikované stránky
+}
+
 export interface PageLayout {
-  nav: { position: NavPosition }
+  nav: NavConfig
   hero: HeroConfig
   sections: Section[]
 }
@@ -50,7 +60,7 @@ export const WIDGETS: Record<WidgetType, { label: string; bg: string; text: stri
 }
 
 export const DEFAULT_LAYOUT: PageLayout = {
-  nav: { position: 'right' },
+  nav: { position: 'right', items: undefined },
   hero: { height: 320, title: 'Vitajte', subtitle: 'Oficiálna stránka obce' },
   sections: [],
 }

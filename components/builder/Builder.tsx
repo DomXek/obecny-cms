@@ -15,49 +15,132 @@ import TextWidgetEditor from './widgets/TextWidgetEditor'
 // ─── Nav Block ────────────────────────────────────────────────────────────────
 
 function NavBlock({
-  position,
+  nav,
   onChange,
 }: {
-  position: NavPosition
-  onChange: (p: NavPosition) => void
+  nav: import('./types').NavConfig
+  onChange: (n: import('./types').NavConfig) => void
 }) {
+  const [open, setOpen] = useState(false)
+  const [newLabel, setNewLabel] = useState('')
+  const [newSlug, setNewSlug] = useState('')
+
   const opts: { val: NavPosition; icon: React.ReactNode; tip: string }[] = [
     { val: 'left',   icon: <AlignLeft size={14} />,   tip: 'Vľavo' },
     { val: 'center', icon: <AlignCenter size={14} />, tip: 'Stred' },
     { val: 'right',  icon: <AlignRight size={14} />,  tip: 'Vpravo' },
   ]
 
-  const justify = position === 'center' ? 'justify-center' : position === 'right' ? 'justify-end' : 'justify-start'
+  const items = nav.items ?? [
+    { slug: 'domov', label: 'Domov' },
+    { slug: 'o-obci', label: 'O obci' },
+    { slug: 'aktuality', label: 'Aktuality' },
+    { slug: 'kontakt', label: 'Kontakt' },
+  ]
+
+  const justify = nav.position === 'center' ? 'justify-center'
+    : nav.position === 'right' ? 'justify-end' : 'justify-start'
+
+  function addItem() {
+    if (!newLabel.trim() || !newSlug.trim()) return
+    onChange({ ...nav, items: [...items, { label: newLabel.trim(), slug: newSlug.trim() }] })
+    setNewLabel('')
+    setNewSlug('')
+  }
+
+  function removeItem(idx: number) {
+    onChange({ ...nav, items: items.filter((_, i) => i !== idx) })
+  }
+
+  function moveItem(idx: number, dir: -1 | 1) {
+    const arr = [...items]
+    const j = idx + dir
+    if (j < 0 || j >= arr.length) return
+    ;[arr[idx], arr[j]] = [arr[j], arr[idx]]
+    onChange({ ...nav, items: arr })
+  }
+
+  function updateLabel(idx: number, label: string) {
+    onChange({ ...nav, items: items.map((it, i) => i === idx ? { ...it, label } : it) })
+  }
 
   return (
     <div className="rounded-xl border border-gray-200 overflow-hidden mb-3 shadow-sm">
       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Navigácia</span>
-        <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
-          {opts.map(o => (
-            <button
-              key={o.val}
-              onClick={() => onChange(o.val)}
-              title={o.tip}
-              className={`p-1.5 rounded-md transition-all ${
-                position === o.val
-                  ? 'bg-white shadow text-gray-900'
-                  : 'text-gray-400 hover:text-gray-700'
-              }`}
-            >
-              {o.icon}
-            </button>
+        <div className="flex items-center gap-2">
+          {/* Position selector */}
+          <div className="flex gap-1 bg-gray-200 rounded-lg p-1">
+            {opts.map(o => (
+              <button key={o.val} onClick={() => onChange({ ...nav, position: o.val })} title={o.tip}
+                className={`p-1.5 rounded-md transition-all ${nav.position === o.val ? 'bg-white shadow text-gray-900' : 'text-gray-400 hover:text-gray-700'}`}>
+                {o.icon}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setOpen(v => !v)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${open ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+          >
+            Upraviť menu
+          </button>
+        </div>
+      </div>
+
+      {/* Nav preview */}
+      <div className="bg-[#154a8a] h-14 flex items-center px-8">
+        <div className={`flex items-center gap-8 w-full ${justify}`}>
+          {items.map(it => (
+            <span key={it.slug} className="text-white/80 text-xs font-medium">{it.label}</span>
           ))}
         </div>
       </div>
 
-      <div className="bg-[#154a8a] h-14 flex items-center px-8">
-        <div className={`flex items-center gap-8 w-full ${justify}`}>
-          {['Domov', 'O obci', 'Aktuality', 'Kontakt'].map(item => (
-            <span key={item} className="text-white/70 text-xs font-medium">{item}</span>
-          ))}
+      {/* Edit panel */}
+      {open && (
+        <div className="border-t border-gray-200 bg-white p-4 space-y-3">
+          <p className="text-xs text-gray-500">Položky menu — poradie zodpovedá navigácii</p>
+
+          <div className="space-y-1.5">
+            {items.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <div className="flex flex-col gap-0.5">
+                  <button onClick={() => moveItem(idx, -1)} disabled={idx === 0}
+                    className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronUp size={12} /></button>
+                  <button onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1}
+                    className="text-gray-400 hover:text-gray-700 disabled:opacity-20"><ChevronDown size={12} /></button>
+                </div>
+                <input
+                  value={item.label}
+                  onChange={e => updateLabel(idx, e.target.value)}
+                  className="flex-1 text-sm text-gray-800 bg-white border border-gray-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+                <span className="text-xs text-gray-400 font-mono">/{item.slug}</span>
+                <button onClick={() => removeItem(idx)}
+                  className="text-gray-400 hover:text-red-500 transition-colors"><X size={14} /></button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add item */}
+          <div className="flex gap-2 pt-1">
+            <input value={newLabel} onChange={e => setNewLabel(e.target.value)}
+              placeholder="Názov položky"
+              className="flex-1 text-sm text-gray-800 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              onKeyDown={e => e.key === 'Enter' && addItem()}
+            />
+            <input value={newSlug} onChange={e => setNewSlug(e.target.value)}
+              placeholder="slug"
+              className="w-32 text-sm text-gray-800 font-mono border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              onKeyDown={e => e.key === 'Enter' && addItem()}
+            />
+            <button onClick={addItem}
+              className="px-3 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+              <Plus size={14} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -478,8 +561,8 @@ export default function Builder({
       <div className="flex-1 overflow-y-auto py-8 px-12">
         <div className="max-w-4xl mx-auto">
           <NavBlock
-            position={layout.nav.position}
-            onChange={pos => setLayout(l => ({ ...l, nav: { position: pos } }))}
+            nav={layout.nav}
+            onChange={nav => setLayout(l => ({ ...l, nav }))}
           />
 
           <HeroBlock
