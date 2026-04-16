@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import {
   PageLayout, NavPosition, Section, SimpleSection, GridSection, HeroConfig, WidgetType,
-  WIDGETS, DEFAULT_LAYOUT, makeDefaultGrid,
+  WIDGETS, DEFAULT_LAYOUT,
 } from './types'
 import TextWidgetEditor from './widgets/TextWidgetEditor'
 import GridSectionBlock from './GridSectionBlock'
@@ -486,8 +486,24 @@ export default function Builder({
     return rowRefs.current.get(id)!
   }
 
-  function addSection(cols: 2 | 3 | 4 = 2) {
-    setLayout(l => ({ ...l, sections: [...l.sections, makeDefaultGrid(cols)] }))
+  function addSection(cols: 1 | 2 | 3 | 4, colSpans?: number[]) {
+    const id = Math.random().toString(36).slice(2)
+    let cells: import('./types').GridCell[]
+    if (colSpans) {
+      // custom spans (e.g. 2/3 + 1/3 as [2,1] in a 3-col grid)
+      let col = 0
+      cells = colSpans.map((span, i) => {
+        const cell = { id: id + i, col, row: 0, colSpan: span, rowSpan: 1, widget: 'empty' as const, content: {} }
+        col += span
+        return cell
+      })
+    } else {
+      cells = Array.from({ length: cols }, (_, i) => ({
+        id: id + i, col: i, row: 0, colSpan: 1, rowSpan: 1, widget: 'empty' as const, content: {},
+      }))
+    }
+    const section: import('./types').GridSection = { id, mode: 'grid', cols, cells }
+    setLayout(l => ({ ...l, sections: [...l.sections, section] }))
     setAddMenu(false)
   }
 
@@ -596,30 +612,62 @@ export default function Builder({
             )
           })}
 
-          {/* Add section button + column picker */}
-          <div className="relative mt-1">
-            <button
-              onClick={() => setAddMenu(v => !v)}
-              className="w-full py-5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
-            >
-              <Plus size={16} />
-              Pridať sekciu
-            </button>
-            {addMenu && (
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-3 flex gap-2 items-center">
-                <span className="text-xs text-gray-500 mr-1">Počet stĺpcov:</span>
-                {([2, 3, 4] as const).map(n => (
-                  <button key={n} onClick={() => addSection(n)}
-                    className="w-10 h-10 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm font-semibold text-gray-700 transition-colors flex items-center justify-center">
-                    {n}
-                  </button>
-                ))}
-                <button onClick={() => setAddMenu(false)} className="ml-1 text-gray-400 hover:text-gray-600"><X size={14} /></button>
-              </div>
-            )}
-          </div>
+          {/* Add section button */}
+          <button
+            onClick={() => setAddMenu(true)}
+            className="w-full py-5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 mt-2"
+          >
+            <Plus size={16} />
+            Pridať sekciu
+          </button>
         </div>
       </div>
+
+      {/* Layout Picker Modal */}
+      {addMenu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setAddMenu(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-7" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Vyber rozloženie sekcie</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Aké stĺpce chceš v tejto sekcii?</p>
+              </div>
+              <button onClick={() => setAddMenu(false)} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Celá šírka', cols: 1 as const, spans: undefined, preview: [100] },
+                { label: '2 stĺpce', cols: 2 as const, spans: undefined, preview: [50, 50] },
+                { label: '3 stĺpce', cols: 3 as const, spans: undefined, preview: [33, 33, 34] },
+                { label: '4 stĺpce', cols: 4 as const, spans: undefined, preview: [25, 25, 25, 25] },
+                { label: '1/3 + 2/3', cols: 3 as const, spans: [1, 2], preview: [33, 67] },
+                { label: '2/3 + 1/3', cols: 3 as const, spans: [2, 1], preview: [67, 33] },
+              ].map(preset => (
+                <button
+                  key={preset.label}
+                  onClick={() => addSection(preset.cols, preset.spans)}
+                  className="group flex flex-col items-center gap-3 p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50/40 transition-all"
+                >
+                  {/* Visual preview of column layout */}
+                  <div className="flex gap-1 w-full h-10 items-stretch">
+                    {preset.preview.map((w, i) => (
+                      <div
+                        key={i}
+                        className="bg-gray-200 group-hover:bg-blue-200 rounded transition-colors"
+                        style={{ width: `${w}%` }}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs font-medium text-gray-600 group-hover:text-blue-600 transition-colors">{preset.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
