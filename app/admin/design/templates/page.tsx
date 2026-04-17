@@ -1,20 +1,16 @@
-import { LayoutTemplate } from 'lucide-react'
+import { createServiceClient } from '@/lib/supabase/service'
+import { TEMPLATES } from '@/lib/templates'
+import TemplatesGallery from './TemplatesGallery'
 
-export default function Page() {
-  return (
-    <div className="flex-1 flex flex-col h-full bg-gray-950 text-white">
-      <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center px-6 shrink-0">
-        <LayoutTemplate size={16} className="text-gray-400 mr-2" />
-        <span className="text-sm font-semibold">Templates</span>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <LayoutTemplate size={28} className="text-gray-600" />
-          </div>
-          <p className="text-gray-500 text-sm">Templates — čoskoro</p>
-        </div>
-      </div>
-    </div>
-  )
+export const dynamic = 'force-dynamic'
+
+export default async function TemplatesPage() {
+  const supabase = createServiceClient()
+  const { data: page } = await supabase
+    .from('pages')
+    .select('id, layout')
+    .eq('slug', 'domov')
+    .single()
+
+  return <TemplatesGallery templates={TEMPLATES} currentLayout={page?.layout ?? null} />
 }
