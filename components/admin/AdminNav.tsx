@@ -2,27 +2,68 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutTemplate, FileText, Settings, LogOut } from 'lucide-react'
+import { useState } from 'react'
+import {
+  LayoutDashboard,
+  Newspaper, FileCheck, CalendarDays, Image,
+  Palette, LayoutTemplate, Menu, Paintbrush,
+  Users, UserPlus, ShieldCheck,
+  Settings, Sliders,
+  LogOut, ChevronDown,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-const NAV = [
+interface NavItem {
+  label: string
+  href: string
+}
+
+interface NavSection {
+  label: string
+  icon: React.ElementType
+  base: string
+  items: NavItem[]
+}
+
+const SECTIONS: NavSection[] = [
   {
-    href: '/admin/wireframe',
-    icon: LayoutTemplate,
-    label: 'Wireframe',
-    match: (p: string) => p.startsWith('/admin/wireframe'),
+    label: 'Príspevky',
+    icon: Newspaper,
+    base: '/admin/prispevky',
+    items: [
+      { label: 'Aktuality', href: '/admin/prispevky/aktuality' },
+      { label: 'Zápis na úrednú desku', href: '/admin/prispevky/uradna-deska' },
+      { label: 'Kalendár akcií', href: '/admin/prispevky/kalendar' },
+      { label: 'Media / Galéria', href: '/admin/prispevky/media' },
+    ],
   },
   {
-    href: '/admin/stranky',
-    icon: FileText,
-    label: 'Stránky',
-    match: (p: string) => p.startsWith('/admin/stranky'),
+    label: 'Design',
+    icon: Palette,
+    base: '/admin/design',
+    items: [
+      { label: 'Templates', href: '/admin/design/templates' },
+      { label: 'Wireframe', href: '/admin/design/wireframe' },
+      { label: 'Navigačné menu', href: '/admin/design/menu' },
+      { label: 'Štýl', href: '/admin/design/styl' },
+    ],
   },
   {
-    href: '/admin/nastavenia',
+    label: 'Užívateľ a role',
+    icon: Users,
+    base: '/admin/uzivatelia',
+    items: [
+      { label: 'Pridať užívateľa', href: '/admin/uzivatelia/pridat' },
+      { label: 'Permissions', href: '/admin/uzivatelia/permissions' },
+    ],
+  },
+  {
+    label: 'General settings',
     icon: Settings,
-    label: 'Nastavenia',
-    match: (p: string) => p.startsWith('/admin/nastavenia'),
+    base: '/admin/nastavenia',
+    items: [
+      { label: 'Hlavné nastavenia', href: '/admin/nastavenia/hlavne' },
+    ],
   },
 ]
 
@@ -31,57 +72,109 @@ export default function AdminNav() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Open the section that contains the current route by default
+  const defaultOpen = SECTIONS.reduce<Record<string, boolean>>((acc, s) => {
+    acc[s.base] = pathname.startsWith(s.base) ||
+      s.items.some(i => pathname === i.href)
+    return acc
+  }, {})
+  const [open, setOpen] = useState<Record<string, boolean>>(defaultOpen)
+
+  function toggle(base: string) {
+    setOpen(o => ({ ...o, [base]: !o[base] }))
+  }
+
   async function logout() {
     await supabase.auth.signOut()
-    router.push('/admin/login')
+    router.push('/login')
     router.refresh()
   }
 
   return (
-    <nav className="w-14 bg-gray-950 border-r border-gray-800 flex flex-col items-center py-3 shrink-0 h-full">
+    <nav className="w-56 bg-gray-950 border-r border-gray-800 flex flex-col shrink-0 h-full overflow-y-auto">
+
       {/* Logo */}
-      <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-base mb-4 shrink-0">
-        🏛
+      <div className="flex items-center gap-3 px-4 h-14 shrink-0 border-b border-gray-800">
+        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-sm shrink-0">🏛</div>
+        <span className="text-white text-sm font-semibold truncate">Obecný CMS</span>
       </div>
 
-      <div className="w-6 h-px bg-gray-800 mb-2 shrink-0" />
+      {/* Dashboard */}
+      <div className="px-3 pt-3">
+        <Link
+          href="/admin/dashboard"
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+            pathname === '/admin/dashboard'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'
+          }`}
+        >
+          <LayoutDashboard size={15} />
+          <span>Dashboard</span>
+        </Link>
+      </div>
 
-      {/* Nav items */}
-      <div className="flex flex-col items-center gap-1 flex-1">
-        {NAV.map(({ href, icon: Icon, label, match }) => {
-          const active = match(pathname)
+      {/* Sections */}
+      <div className="flex-1 px-3 py-2 space-y-0.5">
+        {SECTIONS.map(({ label, icon: Icon, base, items }) => {
+          const isOpen = open[base] ?? false
+          const sectionActive = pathname.startsWith(base)
+
           return (
-            <Link
-              key={href}
-              href={href}
-              title={label}
-              className={`group relative w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                active
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
-                  : 'text-gray-500 hover:text-white hover:bg-gray-800'
-              }`}
-            >
-              <Icon size={17} />
-              {/* Tooltip */}
-              <span className="absolute left-12 bg-gray-800 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">
-                {label}
-              </span>
-            </Link>
+            <div key={base}>
+              {/* Section header */}
+              <button
+                onClick={() => toggle(base)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  sectionActive
+                    ? 'text-white bg-gray-800'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <Icon size={15} className="shrink-0" />
+                <span className="flex-1 text-left">{label}</span>
+                <ChevronDown
+                  size={13}
+                  className={`shrink-0 transition-transform text-gray-600 ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {/* Sub-items */}
+              {isOpen && (
+                <div className="ml-3 pl-3 border-l border-gray-800 mt-0.5 space-y-0.5">
+                  {items.map(({ label: itemLabel, href }) => {
+                    const active = pathname === href
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={`flex items-center px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                          active
+                            ? 'bg-blue-600 text-white font-medium'
+                            : 'text-gray-500 hover:text-white hover:bg-gray-800'
+                        }`}
+                      >
+                        {itemLabel}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           )
         })}
       </div>
 
       {/* Logout */}
-      <button
-        onClick={logout}
-        title="Odhlásiť sa"
-        className="group relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:text-red-400 hover:bg-gray-800 transition-all shrink-0"
-      >
-        <LogOut size={16} />
-        <span className="absolute left-12 bg-gray-800 text-white text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">
-          Odhlásiť sa
-        </span>
-      </button>
+      <div className="px-3 pb-3 shrink-0 border-t border-gray-800 pt-3">
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-red-400 hover:bg-gray-800 transition-colors"
+        >
+          <LogOut size={15} />
+          <span>Odhlásiť sa</span>
+        </button>
+      </div>
     </nav>
   )
 }
