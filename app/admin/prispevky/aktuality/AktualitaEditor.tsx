@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, Check, Eye, EyeOff } from 'lucide-react'
 import { Aktualita } from '@/lib/types'
@@ -187,12 +187,17 @@ export default function AktualitaEditor({ initialData }: Props) {
 
 // ── Inline content editor ─────────────────────────────────────────────────────
 function ContentEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const handleInput = useCallback((e: React.FormEvent<HTMLDivElement>) => {
-    onChange(e.currentTarget.innerHTML)
-  }, [onChange])
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Set HTML only on mount — never on re-render (prevents cursor jumping to start)
+  useEffect(() => {
+    if (ref.current) ref.current.innerHTML = value
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function exec(cmd: string, arg?: string) {
     document.execCommand(cmd, false, arg)
+    ref.current?.focus()
   }
 
   return (
@@ -217,12 +222,12 @@ function ContentEditor({ value, onChange }: { value: string; onChange: (v: strin
           </button>
         ))}
       </div>
-      {/* Editable area */}
+      {/* Editable area — uncontrolled, HTML set once on mount */}
       <div
+        ref={ref}
         contentEditable
         suppressContentEditableWarning
-        onInput={handleInput}
-        dangerouslySetInnerHTML={{ __html: value }}
+        onInput={e => onChange(e.currentTarget.innerHTML)}
         className="min-h-64 px-4 py-3 text-sm text-gray-200 outline-none prose prose-invert prose-sm max-w-none"
       />
     </div>
