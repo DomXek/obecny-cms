@@ -8,20 +8,18 @@ export default function HeroRenderer({ hero }: { hero: HeroConfig }) {
   } else if (hero.bgFrom && hero.bgTo) {
     bg = { background: `linear-gradient(135deg, ${hero.bgFrom}, ${hero.bgTo})` }
   } else {
-    bg = { background: 'linear-gradient(135deg, #1e3a5f, #2563eb)' }
+    bg = { background: 'linear-gradient(135deg, var(--c-secondary), var(--c-primary))' }
   }
 
   return (
-    <section
-      style={{ ...bg, minHeight: `${hero.height}px` }}
-      className="flex items-center justify-center px-6"
-    >
+    <section style={{ ...bg, minHeight: `${hero.height}px` }} className="flex items-center justify-center px-6">
       <div className="text-center max-w-3xl">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight"
+          style={{ fontFamily: 'var(--font-heading)' }}>
           {hero.title}
         </h1>
         {hero.subtitle && (
-          <p className="text-lg md:text-xl text-white/80">
+          <p className="text-lg md:text-xl text-white/80" style={{ fontFamily: 'var(--font-body)' }}>
             {hero.subtitle}
           </p>
         )}
