@@ -1,20 +1,16 @@
-import { Newspaper } from 'lucide-react'
+import { createServiceClient } from '@/lib/supabase/service'
+import { Aktualita } from '@/lib/types'
+import AktualityList from './AktualityList'
 
-export default function Page() {
-  return (
-    <div className="flex-1 flex flex-col h-full bg-gray-950 text-white">
-      <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center px-6 shrink-0">
-        <Newspaper size={16} className="text-gray-400 mr-2" />
-        <span className="text-sm font-semibold">Aktuality</span>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Newspaper size={28} className="text-gray-600" />
-          </div>
-          <p className="text-gray-500 text-sm">Aktuality — čoskoro</p>
-        </div>
-      </div>
-    </div>
-  )
+export const dynamic = 'force-dynamic'
+
+export default async function AktualityPage() {
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('aktuality')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  return <AktualityList initialItems={(data ?? []) as Aktualita[]} />
 }

@@ -47,6 +47,20 @@ export interface PageLayout {
   blocks: Block[]
 }
 
+export interface Aktualita {
+  id: string
+  title: string
+  slug: string
+  perex: string | null
+  content: string | null
+  cover_url: string | null
+  author: string | null
+  published_at: string | null
+  is_published: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Page {
   id: string
   slug: string
