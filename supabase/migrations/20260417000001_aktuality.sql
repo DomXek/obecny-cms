@@ -28,6 +28,7 @@ create trigger aktuality_updated_at
 alter table aktuality enable row level security;
 
 -- Public can read published articles
+drop policy if exists "public read published" on aktuality;
 create policy "public read published" on aktuality
   for select using (is_published = true);
 
