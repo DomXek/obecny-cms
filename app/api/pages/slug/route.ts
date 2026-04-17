@@ -26,8 +26,10 @@ export async function PATCH(request: Request) {
   const supabase = createServiceClient()
   const { error } = await supabase
     .from('pages')
-    .update({ layout: body.layout })
-    .eq('slug', slug)
+    .upsert(
+      { slug, layout: body.layout, title: slug === 'domov' ? 'Domov' : slug },
+      { onConflict: 'slug' }
+    )
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
