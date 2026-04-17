@@ -1,14 +1,9 @@
 import { HeroConfig } from '@/lib/types'
 
 export default function HeroRenderer({ hero }: { hero: HeroConfig }) {
-  let bg: React.CSSProperties
-
-  if (hero.bgColor) {
-    bg = { background: hero.bgColor }
-  } else if (hero.bgFrom && hero.bgTo) {
-    bg = { background: `linear-gradient(135deg, ${hero.bgFrom}, ${hero.bgTo})` }
-  } else {
-    bg = { background: 'linear-gradient(135deg, var(--c-secondary), var(--c-primary))' }
+  // Always driven by site style — colors come from CSS vars set in Design → Štýl
+  const bg: React.CSSProperties = {
+    background: 'linear-gradient(135deg, var(--c-secondary), var(--c-primary))',
   }
 
   return (

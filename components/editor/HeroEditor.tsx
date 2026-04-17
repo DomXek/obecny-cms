@@ -4,14 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { Settings, X, GripHorizontal } from 'lucide-react'
 import { HeroConfig } from '@/lib/types'
 
-const COLOR_PRESETS = [
-  { label: 'Modrá',    from: '#1e3a8a', to: '#1d4ed8' },
-  { label: 'Tmavá',    from: '#0f172a', to: '#1e293b' },
-  { label: 'Zelená',   from: '#064e3b', to: '#047857' },
-  { label: 'Fialová',  from: '#3b0764', to: '#6d28d9' },
-  { label: 'Červená',  from: '#7f1d1d', to: '#b91c1c' },
-  { label: 'Sivá',     from: '#111827', to: '#374151' },
-]
 
 interface Props {
   hero: HeroConfig
@@ -52,9 +44,8 @@ export default function HeroEditor({ hero, onChange }: Props) {
     window.addEventListener('mouseup', onUp)
   }
 
-  const bgStyle = hero.bgColor
-    ? { background: hero.bgColor }
-    : { background: `linear-gradient(135deg, ${hero.bgFrom ?? '#1e3a8a'}, ${hero.bgTo ?? '#1d4ed8'})` }
+  // Admin preview uses a fixed gradient — real colors come from Design → Štýl
+  const bgStyle = { background: 'linear-gradient(135deg, #1e3a5f, #2563eb)' }
 
   return (
     <div ref={containerRef} className="group/hero relative rounded-2xl overflow-visible shadow-sm mb-1">
@@ -147,24 +138,11 @@ export default function HeroEditor({ hero, onChange }: Props) {
             </div>
           </div>
 
-          {/* Background color presets */}
-          <div>
-            <label className="text-xs font-medium text-gray-600 block mb-2">Pozadie</label>
-            <div className="grid grid-cols-3 gap-2">
-              {COLOR_PRESETS.map(p => (
-                <button
-                  key={p.label}
-                  onClick={() => onChange({ ...hero, bgFrom: p.from, bgTo: p.to, bgColor: undefined })}
-                  className={`h-10 rounded-xl text-xs font-medium text-white transition-all hover:scale-105 ${
-                    hero.bgFrom === p.from ? 'ring-2 ring-blue-500 ring-offset-1' : ''
-                  }`}
-                  style={{ background: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
-                  title={p.label}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+          {/* Color info */}
+          <div className="mt-1 p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-600 leading-relaxed">
+            Farby hero sekcie sa riadia nastaveniami v{' '}
+            <strong>Design → Štýl</strong>{' '}
+            (primárna a sekundárna farba).
           </div>
         </div>
       )}
