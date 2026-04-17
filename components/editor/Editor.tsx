@@ -12,6 +12,8 @@ import { COLS, ROW_H, GAP, xToCol, yToRow } from '@/lib/gridUtils'
 import Sidebar from './Sidebar'
 import GridBlock from './GridBlock'
 import TextEditor from './TextEditor'
+import HeroEditor from './HeroEditor'
+import NavEditor from './NavEditor'
 
 const DEFAULT_LAYOUT: PageLayout = {
   nav: { position: 'center', items: [{ label: 'Domov', slug: 'domov' }] },
@@ -267,17 +269,17 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
           <div className="flex-1 overflow-y-auto bg-gray-100 py-8 px-6">
             <div className="max-w-5xl mx-auto space-y-4">
 
+              {/* Nav */}
+              <NavEditor
+                nav={layout.nav}
+                onChange={nav => setLayout(l => ({ ...l, nav }))}
+              />
+
               {/* Hero */}
-              <div
-                className="rounded-2xl flex flex-col items-center justify-center text-center px-10 shadow-sm"
-                style={{
-                  minHeight: layout.hero.height,
-                  background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
-                }}
-              >
-                <h1 className="text-4xl font-bold text-white mb-2">{layout.hero.title}</h1>
-                <p className="text-blue-200 text-lg">{layout.hero.subtitle}</p>
-              </div>
+              <HeroEditor
+                hero={layout.hero}
+                onChange={hero => setLayout(l => ({ ...l, hero }))}
+              />
 
               {/* Grid canvas */}
               <Canvas

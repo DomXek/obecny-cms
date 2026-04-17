@@ -36,7 +36,9 @@ export interface HeroConfig {
   title: string
   subtitle: string
   height: number
-  bgColor?: string
+  bgColor?: string   // solid color (overrides gradient)
+  bgFrom?: string    // gradient start
+  bgTo?: string      // gradient end
 }
 
 export interface PageLayout {
