@@ -12,15 +12,14 @@ export interface Widget {
   content: Record<string, unknown>
 }
 
-export interface CmsColumn {
+export interface Block {
   id: string
-  width: number   // percentage, e.g. 50 = 50%
-  widget: Widget | null
-}
-
-export interface CmsRow {
-  id: string
-  columns: CmsColumn[]
+  type: WidgetType
+  col: number       // 0–11  (which column it starts at)
+  row: number       // 0+    (which row it starts at)
+  colSpan: number   // 1–12  (how many columns wide)
+  rowSpan: number   // 1+    (how many rows tall)
+  content: Record<string, unknown>
 }
 
 export interface NavItem {
@@ -43,7 +42,7 @@ export interface HeroConfig {
 export interface PageLayout {
   nav: NavConfig
   hero: HeroConfig
-  rows: CmsRow[]
+  blocks: Block[]
 }
 
 export interface Page {

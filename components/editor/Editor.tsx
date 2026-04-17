@@ -6,17 +6,16 @@ import {
   useDroppable,
   type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
-import { Eye, Save, Plus, Check } from 'lucide-react'
-import { PageLayout, CmsRow, CmsColumn, WIDGET_DEFS, WidgetType, uid } from '@/lib/types'
+import { Eye, Save, Check } from 'lucide-react'
+import { PageLayout, Block, WIDGET_DEFS, WidgetType, uid } from '@/lib/types'
 import Sidebar from './Sidebar'
-import RowBlock from './RowBlock'
+import GridBlock, { COLS, ROW_H, GAP } from './GridBlock'
 import TextEditor from './TextEditor'
 
 const DEFAULT_LAYOUT: PageLayout = {
   nav: { position: 'center', items: [{ label: 'Domov', slug: 'domov' }] },
   hero: { title: 'Vitajte v obci', subtitle: 'Oficiálna webová stránka obce', height: 420 },
-  rows: [],
+  blocks: [],
 }
 
 interface Props {
@@ -26,25 +25,115 @@ interface Props {
   initialLayout: PageLayout | null
 }
 
-// ─── TextEditor overlay state ─────────────────────────────────────────────────
-interface EditingCell {
-  rowId: string
-  colId: string
+// ── Calculate how many rows the grid needs ────────────────────────────────────
+function gridRows(blocks: Block[]): number {
+  if (blocks.length === 0) return 6
+  const max = Math.max(...blocks.map(b => b.row + b.rowSpan))
+  return max + 3  // a few empty rows below
 }
 
-// ─── Main Editor ──────────────────────────────────────────────────────────────
+// ── Next free row (below all existing blocks) ─────────────────────────────────
+function nextRow(blocks: Block[]): number {
+  if (blocks.length === 0) return 0
+  return Math.max(...blocks.map(b => b.row + b.rowSpan))
+}
+
+// ── Drop Ghost ────────────────────────────────────────────────────────────────
+function DropGhost({ col, row, colSpan }: { col: number; row: number; colSpan: number }) {
+  return (
+    <div
+      className="pointer-events-none rounded-xl bg-blue-400/20 border-2 border-blue-400 border-dashed z-50"
+      style={{
+        gridColumn: `${col + 1} / ${col + colSpan + 1}`,
+        gridRow:    `${row + 1} / ${row + 2}`,
+      }}
+    />
+  )
+}
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+function Canvas({
+  blocks,
+  onUpdate,
+  onDelete,
+  onEdit,
+  dragGhost,
+  canvasRef,
+}: {
+  blocks: Block[]
+  onUpdate: (b: Block) => void
+  onDelete: (id: string) => void
+  onEdit: (id: string) => void
+  dragGhost: { col: number; row: number; colSpan: number } | null
+  canvasRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: 'canvas' })
+
+  const rows = gridRows(blocks)
+
+  function mergeRefs(el: HTMLDivElement | null) {
+    (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+    setNodeRef(el)
+  }
+
+  return (
+    <div
+      ref={mergeRefs}
+      className={`relative rounded-2xl transition-colors ${isOver ? 'bg-blue-50/60' : 'bg-white'} shadow-sm`}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${COLS}, 1fr)`,
+        gridTemplateRows: `repeat(${rows}, ${ROW_H}px)`,
+        gap: `${GAP}px`,
+        padding: `${GAP}px`,
+        minHeight: `${rows * (ROW_H + GAP) + GAP}px`,
+      }}
+    >
+      {/* Subtle column guide lines (always visible) */}
+      {Array.from({ length: COLS }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-lg bg-gray-50 border border-gray-100 pointer-events-none"
+          style={{
+            gridColumn: `${i + 1} / ${i + 2}`,
+            gridRow: `1 / ${rows + 1}`,
+          }}
+        />
+      ))}
+
+      {/* Blocks */}
+      {blocks.map(block => (
+        <GridBlock
+          key={block.id}
+          block={block}
+          canvasEl={canvasRef.current ?? null}
+          onUpdate={onUpdate}
+          onDelete={() => onDelete(block.id)}
+          onEdit={() => onEdit(block.id)}
+        />
+      ))}
+
+      {/* Drop ghost */}
+      {dragGhost && <DropGhost {...dragGhost} />}
+    </div>
+  )
+}
+
+// ── Main Editor ───────────────────────────────────────────────────────────────
 export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: Props) {
-  const [layout, setLayout] = useState<PageLayout>(initialLayout ?? DEFAULT_LAYOUT)
+  const [layout, setLayout] = useState<PageLayout>(
+    initialLayout?.blocks ? initialLayout : DEFAULT_LAYOUT
+  )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [activeWidgetType, setActiveWidgetType] = useState<WidgetType | null>(null)
-  const [editingCell, setEditingCell] = useState<EditingCell | null>(null)
+  const [draggingType, setDraggingType] = useState<WidgetType | null>(null)
+  const [dragGhost, setDragGhost] = useState<{ col: number; row: number; colSpan: number } | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
-  const canvasRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLDivElement | null>(null)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
-
-  // ── Save ──────────────────────────────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────────────
   async function save() {
     setSaving(true)
     await fetch(`/api/pages/slug?slug=${pageSlug}`, {
@@ -57,114 +146,90 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     setTimeout(() => setSaved(false), 2500)
   }
 
-  // ── Row helpers ───────────────────────────────────────────────────────────
-  function addRow(widgetType?: WidgetType) {
-    const colId = uid()
-    const newRow: CmsRow = {
+  // ── Block helpers ─────────────────────────────────────────────────────────
+  function updateBlock(updated: Block) {
+    setLayout(l => ({ ...l, blocks: l.blocks.map(b => b.id === updated.id ? updated : b) }))
+  }
+
+  function deleteBlock(id: string) {
+    setLayout(l => ({ ...l, blocks: l.blocks.filter(b => b.id !== id) }))
+  }
+
+  function addBlock(type: WidgetType, col: number) {
+    const colSpan = Math.min(6, COLS - col)
+    const block: Block = {
       id: uid(),
-      columns: [{
-        id: colId,
-        width: 100,
-        widget: widgetType
-          ? { type: widgetType, content: WIDGET_DEFS[widgetType].defaultContent }
-          : null,
-      }],
+      type,
+      col,
+      row: nextRow(layout.blocks),
+      colSpan,
+      rowSpan: 2,
+      content: { ...WIDGET_DEFS[type].defaultContent },
     }
-    setLayout(l => ({ ...l, rows: [...l.rows, newRow] }))
+    setLayout(l => ({ ...l, blocks: [...l.blocks, block] }))
   }
 
-  function updateRow(updated: CmsRow) {
-    setLayout(l => ({ ...l, rows: l.rows.map(r => r.id === updated.id ? updated : r) }))
+  // ── Calculate ghost position while dragging ───────────────────────────────
+  function calcGhostCol(clientX: number): number {
+    if (!canvasRef.current) return 0
+    const rect = canvasRef.current.getBoundingClientRect()
+    const relX = clientX - rect.left - GAP
+    const cw = (rect.width - 2 * GAP - (COLS - 1) * GAP) / COLS
+    return Math.max(0, Math.min(COLS - 1, Math.floor(relX / (cw + GAP))))
   }
 
-  function deleteRow(id: string) {
-    setLayout(l => ({ ...l, rows: l.rows.filter(r => r.id !== id) }))
-  }
-
-  function dropWidgetIntoCol(rowId: string, colId: string, widgetType: WidgetType) {
-    setLayout(l => ({
-      ...l,
-      rows: l.rows.map(r =>
-        r.id !== rowId ? r : {
-          ...r,
-          columns: r.columns.map(c =>
-            c.id !== colId ? c : {
-              ...c,
-              widget: { type: widgetType, content: WIDGET_DEFS[widgetType].defaultContent },
-            }
-          ),
-        }
-      ),
-    }))
-  }
-
-  // ── Text editing ──────────────────────────────────────────────────────────
-  function getEditingCol(): CmsColumn | null {
-    if (!editingCell) return null
-    const row = layout.rows.find(r => r.id === editingCell.rowId)
-    return row?.columns.find(c => c.id === editingCell.colId) ?? null
-  }
-
-  function updateEditingColHtml(html: string) {
-    if (!editingCell) return
-    setLayout(l => ({
-      ...l,
-      rows: l.rows.map(r =>
-        r.id !== editingCell.rowId ? r : {
-          ...r,
-          columns: r.columns.map(c =>
-            c.id !== editingCell.colId ? c : {
-              ...c,
-              widget: c.widget ? { ...c.widget, content: { ...c.widget.content, html } } : c.widget,
-            }
-          ),
-        }
-      ),
-    }))
-  }
-
-  // ── DnD handlers ─────────────────────────────────────────────────────────
+  // ── DnD handlers ──────────────────────────────────────────────────────────
   function onDragStart(e: DragStartEvent) {
     if (e.active.data.current?.from === 'sidebar') {
-      setActiveWidgetType(e.active.data.current.widgetType as WidgetType)
+      setDraggingType(e.active.data.current.widgetType as WidgetType)
     }
+  }
+
+  function onDragMove(e: { activatorEvent: Event; delta: { x: number; y: number } }) {
+    if (!draggingType) return
+    const ae = e.activatorEvent as MouseEvent
+    const col = calcGhostCol(ae.clientX + e.delta.x)
+    const colSpan = Math.min(6, COLS - col)
+    setDragGhost({ col, row: nextRow(layout.blocks), colSpan })
   }
 
   function onDragEnd(e: DragEndEvent) {
-    setActiveWidgetType(null)
-
     const { active, over } = e
-    if (!over) return
+    setDraggingType(null)
+    setDragGhost(null)
 
-    // ── Drop from sidebar into column ──────────────────────────────────
-    if (active.data.current?.from === 'sidebar') {
-      const widgetType = active.data.current.widgetType as WidgetType
-      const overData = over.data.current as { rowId?: string; colId?: string } | undefined
-
-      if (over.id === 'canvas-drop' || !overData?.rowId) {
-        // Dropped onto canvas background → add new full-width row
-        addRow(widgetType)
-      } else if (overData.rowId && overData.colId) {
-        // Dropped into a specific column
-        dropWidgetIntoCol(overData.rowId, overData.colId, widgetType)
-      }
-      return
-    }
-
-    // ── Reorder rows ───────────────────────────────────────────────────
-    const activeRow = layout.rows.find(r => r.id === active.id)
-    const overRow = layout.rows.find(r => r.id === over.id)
-    if (activeRow && overRow && active.id !== over.id) {
-      const oldIdx = layout.rows.indexOf(activeRow)
-      const newIdx = layout.rows.indexOf(overRow)
-      setLayout(l => ({ ...l, rows: arrayMove(l.rows, oldIdx, newIdx) }))
+    if (active.data.current?.from === 'sidebar' && over?.id === 'canvas') {
+      const ae = e.activatorEvent as MouseEvent
+      const col = calcGhostCol(ae.clientX + e.delta.x)
+      addBlock(active.data.current.widgetType as WidgetType, col)
     }
   }
 
-  const editingCol = getEditingCol()
+  // ── Text editing ──────────────────────────────────────────────────────────
+  const editingBlock = editingId ? layout.blocks.find(b => b.id === editingId) ?? null : null
+
+  function updateEditingHtml(html: string) {
+    if (!editingId) return
+    setLayout(l => ({
+      ...l,
+      blocks: l.blocks.map(b =>
+        b.id === editingId ? { ...b, content: { ...b.content, html } } : b
+      ),
+    }))
+  }
+
+  function handleEdit(id: string) {
+    const block = layout.blocks.find(b => b.id === id)
+    if (block?.type === 'text') setEditingId(id)
+  }
 
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={onDragStart}
+      onDragMove={onDragMove as never}
+      onDragEnd={onDragEnd}
+    >
       <div className="flex h-screen bg-gray-950 overflow-hidden">
 
         {/* Sidebar */}
@@ -176,126 +241,95 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
           {/* Topbar */}
           <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-5 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-sm">🏛</div>
-              <div>
-                <span className="text-sm font-semibold text-white">{pageTitle}</span>
-                <span className="text-gray-500 text-sm"> — Editor</span>
-              </div>
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">🏛</div>
+              <span className="text-sm font-semibold text-white">{pageTitle}</span>
+              <span className="text-gray-600 text-sm hidden sm:inline">— Page Editor</span>
             </div>
             <div className="flex items-center gap-2">
               <a
                 href={`/${pageSlug}?preview=1`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors"
               >
                 <Eye size={14} /> Náhľad
               </a>
               <button
                 onClick={save}
                 disabled={saving}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  saved
-                    ? 'bg-green-600 text-white'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50'
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                  saved ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50'
                 }`}
               >
-                {saved ? <><Check size={14} /> Uložené</> : <><Save size={14} /> {saving ? 'Ukladám...' : 'Uložiť'}</>}
+                {saved ? <><Check size={14} />Uložené</> : <><Save size={14} />{saving ? 'Ukladám…' : 'Uložiť'}</>}
               </button>
             </div>
           </div>
 
-          {/* Canvas area */}
-          <div className="flex-1 overflow-y-auto bg-gray-100 py-10 px-8">
-            <div className="max-w-5xl mx-auto">
+          {/* Canvas scroll area */}
+          <div className="flex-1 overflow-y-auto bg-gray-100 py-8 px-6">
+            <div className="max-w-5xl mx-auto space-y-4">
 
-              {/* Hero preview */}
+              {/* Hero */}
               <div
-                className="rounded-2xl mb-4 flex flex-col items-center justify-center text-center px-8 shadow-sm overflow-hidden relative group/hero"
+                className="rounded-2xl flex flex-col items-center justify-center text-center px-10 shadow-sm"
                 style={{
                   minHeight: layout.hero.height,
-                  background: layout.hero.bgColor ?? 'linear-gradient(135deg, #1e40af, #1d4ed8)',
+                  background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
                 }}
               >
                 <h1 className="text-4xl font-bold text-white mb-2">{layout.hero.title}</h1>
                 <p className="text-blue-200 text-lg">{layout.hero.subtitle}</p>
-                <div className="absolute top-3 right-3 opacity-0 group-hover/hero:opacity-100 transition-opacity">
-                  <span className="text-xs bg-black/30 text-white px-2 py-1 rounded-full">Klikni pre úpravu</span>
-                </div>
               </div>
 
-              {/* Rows */}
-              <SortableContext items={layout.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-3">
-                  {layout.rows.map((row, idx) => (
-                    <RowBlock
-                      key={row.id}
-                      row={row}
-                      isFirst={idx === 0}
-                      isLast={idx === layout.rows.length - 1}
-                      onUpdate={updateRow}
-                      onDelete={() => deleteRow(row.id)}
-                      onEdit={(rowId, colId) => setEditingCell({ rowId, colId })}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
+              {/* Grid canvas */}
+              <Canvas
+                blocks={layout.blocks}
+                onUpdate={updateBlock}
+                onDelete={deleteBlock}
+                onEdit={handleEdit}
+                dragGhost={dragGhost}
+                canvasRef={canvasRef}
+              />
 
-              {/* Add row button / canvas drop zone */}
-              <CanvasDropZone hasRows={layout.rows.length > 0} onAddRow={() => addRow()} />
+              {layout.blocks.length === 0 && (
+                <p className="text-center text-sm text-gray-400 py-2">
+                  Pretiahnite widget zo sidebaru na canvas
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Drag overlay (ghost while dragging from sidebar) */}
+        {/* Drag overlay */}
         <DragOverlay dropAnimation={null}>
-          {activeWidgetType ? (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white shadow-2xl border border-blue-400 opacity-90">
-              <span className="text-xl">{WIDGET_DEFS[activeWidgetType].icon}</span>
-              <span className="text-sm font-semibold">{WIDGET_DEFS[activeWidgetType].label}</span>
+          {draggingType ? (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white shadow-2xl opacity-90">
+              <span className="text-xl">{WIDGET_DEFS[draggingType].icon}</span>
+              <span className="text-sm font-semibold">{WIDGET_DEFS[draggingType].label}</span>
             </div>
           ) : null}
         </DragOverlay>
 
-        {/* Text editor overlay (full screen modal) */}
-        {editingCell && editingCol?.widget?.type === 'text' && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-8">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[70vh] flex flex-col overflow-hidden">
+        {/* Text editor modal */}
+        {editingBlock?.type === 'text' && (
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-8"
+            onClick={() => setEditingId(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[70vh] flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
               <TextEditor
-                html={(editingCol.widget.content.html as string) ?? ''}
-                onChange={updateEditingColHtml}
-                onClose={() => setEditingCell(null)}
+                html={(editingBlock.content.html as string) ?? ''}
+                onChange={updateEditingHtml}
+                onClose={() => setEditingId(null)}
               />
             </div>
           </div>
         )}
       </div>
     </DndContext>
-  )
-}
-
-// ─── Canvas Drop Zone ─────────────────────────────────────────────────────────
-function CanvasDropZone({ hasRows, onAddRow }: { hasRows: boolean; onAddRow: () => void }) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'canvas-drop' })
-
-  return (
-    <div
-      ref={setNodeRef}
-      onClick={onAddRow}
-      className={`mt-3 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-        isOver
-          ? 'border-blue-400 bg-blue-50 py-10'
-          : hasRows
-          ? 'border-gray-300 hover:border-blue-300 hover:bg-blue-50/30 py-6'
-          : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50/30 py-16'
-      }`}
-    >
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isOver ? 'bg-blue-100' : 'bg-white border border-gray-200'}`}>
-        <Plus size={18} className={isOver ? 'text-blue-500' : 'text-gray-400'} />
-      </div>
-      <span className={`text-sm font-medium transition-colors ${isOver ? 'text-blue-600' : 'text-gray-400'}`}>
-        {isOver ? 'Uvoľniť pre pridanie widgetu' : 'Pridať riadok'}
-      </span>
-    </div>
   )
 }
