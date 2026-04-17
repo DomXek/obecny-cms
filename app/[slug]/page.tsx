@@ -1,23 +1,23 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { PageLayout } from '@/lib/types'
-import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import NavRenderer from '@/components/public/NavRenderer'
 import HeroRenderer from '@/components/public/HeroRenderer'
 import GridRenderer from '@/components/public/GridRenderer'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HomePage() {
+export default async function PublicPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const supabase = createServiceClient()
 
   const { data: page } = await supabase
     .from('pages')
     .select('*')
-    .eq('slug', 'domov')
+    .eq('slug', slug)
     .single()
 
-  // No page yet → go to admin setup
-  if (!page) redirect('/admin')
+  if (!page) notFound()
 
   const layout = page.layout as PageLayout
 
