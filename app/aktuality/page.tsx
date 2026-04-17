@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { Aktualita } from '@/lib/types'
 import Link from 'next/link'
+import PageHeader from '@/components/public/PageHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,33 +21,44 @@ export default async function AktualityPublicPage() {
   const items = (data ?? []) as Aktualita[]
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Aktuality</h1>
-      {items.length === 0 ? (
-        <p className="text-gray-500">Žiadne aktuality.</p>
-      ) : (
-        <div className="space-y-6">
-          {items.map(item => (
-            <Link
-              key={item.id}
-              href={`/aktuality/${item.slug}`}
-              className="block bg-white border border-gray-200 p-6 hover:border-gray-300 transition-all group"
-              style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}
-            >
-              <div className="flex items-center gap-3 text-xs text-gray-400 mb-2">
-                <span>{formatDate(item.published_at ?? item.created_at)}</span>
-                {item.author && <><span>·</span><span>{item.author}</span></>}
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-1">
-                {item.title}
-              </h2>
-              {item.perex && (
-                <p className="text-gray-500 text-sm line-clamp-2">{item.perex}</p>
-              )}
-            </Link>
-          ))}
-        </div>
-      )}
-    </main>
+    <>
+      <PageHeader
+        title="Aktuality"
+        breadcrumbs={[{ label: 'Domov', href: '/' }, { label: 'Aktuality' }]}
+      />
+      <main className="max-w-4xl mx-auto px-6 py-10">
+        {items.length === 0 ? (
+          <p style={{ color: 'var(--c-text)' }} className="opacity-50">Žiadne aktuality.</p>
+        ) : (
+          <div className="space-y-4">
+            {items.map(item => (
+              <Link
+                key={item.id}
+                href={`/aktuality/${item.slug}`}
+                className="block bg-white border border-black/6 p-6 transition-all group hover:border-black/10"
+                style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}
+              >
+                <div className="flex items-center gap-3 text-xs mb-2" style={{ color: 'var(--c-text)', opacity: 0.45 }}>
+                  <span>{formatDate(item.published_at ?? '')}</span>
+                  {item.author && <><span>·</span><span>{item.author}</span></>}
+                </div>
+                <h2 className="text-lg font-semibold mb-1 transition-colors group-hover:opacity-80"
+                  style={{ color: 'var(--c-text)', fontFamily: 'var(--font-heading)' }}>
+                  {item.title}
+                </h2>
+                {item.perex && (
+                  <p className="text-sm line-clamp-2" style={{ color: 'var(--c-text)', opacity: 0.55 }}>
+                    {item.perex}
+                  </p>
+                )}
+                <span className="inline-block mt-3 text-xs font-semibold" style={{ color: 'var(--c-primary)' }}>
+                  Čítať viac →
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </main>
+    </>
   )
 }
