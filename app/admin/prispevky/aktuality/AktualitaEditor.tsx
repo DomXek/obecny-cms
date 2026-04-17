@@ -185,11 +185,17 @@ export default function AktualitaEditor({ initialData }: Props) {
   )
 }
 
-// ── Inline content editor ─────────────────────────────────────────────────────
+// ── Rich content editor ───────────────────────────────────────────────────────
 function ContentEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null)
+  const ref       = useRef<HTMLDivElement>(null)
+  const fileRef   = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading]   = useState(false)
+  const [embedOpen, setEmbedOpen]   = useState(false)
+  const [embedCode, setEmbedCode]   = useState('')
+  const [linkOpen, setLinkOpen]     = useState(false)
+  const [linkUrl, setLinkUrl]       = useState('')
+  const savedRange = useRef<Range | null>(null)
 
-  // Set HTML only on mount — never on re-render (prevents cursor jumping to start)
   useEffect(() => {
     if (ref.current) ref.current.innerHTML = value
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,38 +204,201 @@ function ContentEditor({ value, onChange }: { value: string; onChange: (v: strin
   function exec(cmd: string, arg?: string) {
     document.execCommand(cmd, false, arg)
     ref.current?.focus()
+    sync()
   }
+
+  function sync() {
+    if (ref.current) onChange(ref.current.innerHTML)
+  }
+
+  function saveSelection() {
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0) savedRange.current = sel.getRangeAt(0).cloneRange()
+  }
+
+  function restoreSelection() {
+    const sel = window.getSelection()
+    if (sel && savedRange.current) {
+      sel.removeAllRanges()
+      sel.addRange(savedRange.current)
+    }
+  }
+
+  // ── Image upload ─────────────────────────────────────────────────────────
+  async function handleImageFile(file: File) {
+    setUploading(true)
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: form })
+    const { url, error } = await res.json()
+    setUploading(false)
+    if (error || !url) return
+    restoreSelection()
+    document.execCommand('insertHTML', false,
+      `<figure style="margin:1.5em 0;text-align:center">
+        <img src="${url}" alt="" style="max-width:100%;height:auto;border-radius:var(--radius,8px)" />
+      </figure>`)
+    ref.current?.focus()
+    sync()
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleImageFile(file)
+    e.target.value = ''
+  }
+
+  // Drag & drop images into editor
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file?.type.startsWith('image/')) handleImageFile(file)
+  }
+
+  // ── Embed / iframe insert ────────────────────────────────────────────────
+  function insertEmbed() {
+    if (!embedCode.trim()) return
+    restoreSelection()
+    // Wrap in a non-editable div so the raw HTML renders safely
+    const wrapped = `<div class="embed-block" contenteditable="false" style="margin:1.5em 0;overflow:hidden;border-radius:var(--radius,8px)">${embedCode.trim()}</div><p><br></p>`
+    document.execCommand('insertHTML', false, wrapped)
+    ref.current?.focus()
+    sync()
+    setEmbedCode('')
+    setEmbedOpen(false)
+  }
+
+  // ── Link insert ──────────────────────────────────────────────────────────
+  function insertLink() {
+    const url = linkUrl.trim()
+    if (!url) return
+    restoreSelection()
+    document.execCommand('createLink', false, url.startsWith('http') ? url : 'https://' + url)
+    const links = ref.current?.querySelectorAll('a:not([target])')
+    links?.forEach(a => { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener') })
+    ref.current?.focus()
+    sync()
+    setLinkUrl('')
+    setLinkOpen(false)
+  }
+
+  const SEP = <div className="w-px h-4 bg-gray-700 mx-0.5" />
+
+  const TB_BTN = 'px-2 py-1 text-xs rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors flex items-center gap-1'
+  const TB_ACTIVE = 'bg-gray-700 text-white'
 
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden focus-within:border-blue-600 transition-colors">
-      {/* Toolbar */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-700 flex-wrap">
-        {[
-          { label: 'H2', action: () => exec('formatBlock', 'h2') },
-          { label: 'H3', action: () => exec('formatBlock', 'h3') },
-          { label: 'B', action: () => exec('bold'), style: 'font-bold' },
-          { label: 'I', action: () => exec('italic'), style: 'italic' },
-          { label: 'UL', action: () => exec('insertUnorderedList') },
-          { label: 'OL', action: () => exec('insertOrderedList') },
-          { label: '—', action: () => exec('insertHorizontalRule') },
-        ].map(({ label, action, style }) => (
-          <button
-            key={label}
-            onMouseDown={e => { e.preventDefault(); action() }}
-            className={`px-2.5 py-1 text-xs rounded text-gray-400 hover:text-white hover:bg-gray-700 transition-colors ${style ?? ''}`}
-          >
-            {label}
-          </button>
-        ))}
+
+      {/* ── Toolbar ─────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-0.5 px-3 py-2 border-b border-gray-700 flex-wrap">
+
+        {/* Text format */}
+        <button onMouseDown={e=>{e.preventDefault();exec('formatBlock','p')}} className={TB_BTN} title="Odsek">P</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('formatBlock','h2')}} className={TB_BTN} title="Nadpis 2">H2</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('formatBlock','h3')}} className={TB_BTN} title="Nadpis 3">H3</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('formatBlock','blockquote')}} className={TB_BTN} title="Citát">❝</button>
+        {SEP}
+
+        {/* Inline format */}
+        <button onMouseDown={e=>{e.preventDefault();exec('bold')}}   className={`${TB_BTN} font-bold`} title="Tučné">B</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('italic')}} className={`${TB_BTN} italic`}    title="Kurzíva">I</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('underline')}} className={`${TB_BTN} underline`} title="Podčiarknuté">U</button>
+        {SEP}
+
+        {/* Lists */}
+        <button onMouseDown={e=>{e.preventDefault();exec('insertUnorderedList')}} className={TB_BTN} title="Zoznam">• UL</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('insertOrderedList')}}   className={TB_BTN} title="Číslov. zoznam">1. OL</button>
+        <button onMouseDown={e=>{e.preventDefault();exec('insertHorizontalRule')}} className={TB_BTN} title="Oddeľovač">—</button>
+        {SEP}
+
+        {/* Link */}
+        <button
+          onMouseDown={e => { e.preventDefault(); saveSelection(); setLinkOpen(v => !v); setEmbedOpen(false) }}
+          className={`${TB_BTN} ${linkOpen ? TB_ACTIVE : ''}`} title="Vložiť odkaz"
+        >🔗 Link</button>
+        {SEP}
+
+        {/* Image upload */}
+        <button
+          onMouseDown={e => { e.preventDefault(); saveSelection(); fileRef.current?.click() }}
+          disabled={uploading}
+          className={`${TB_BTN} ${uploading ? 'opacity-50' : ''}`} title="Vložiť obrázok"
+        >
+          {uploading ? '⏳' : '🖼'} Foto
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
+
+        {/* HTML / iframe embed */}
+        <button
+          onMouseDown={e => { e.preventDefault(); saveSelection(); setEmbedOpen(v => !v); setLinkOpen(false) }}
+          className={`${TB_BTN} ${embedOpen ? TB_ACTIVE : ''}`} title="Vložiť HTML / iframe"
+        >{'</>'} Embed</button>
+
       </div>
-      {/* Editable area — uncontrolled, HTML set once on mount */}
+
+      {/* ── Link panel ──────────────────────────────────────────────────── */}
+      {linkOpen && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-gray-800 border-b border-gray-700">
+          <span className="text-xs text-gray-500 shrink-0">URL:</span>
+          <input
+            autoFocus
+            value={linkUrl}
+            onChange={e => setLinkUrl(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') insertLink(); if (e.key === 'Escape') setLinkOpen(false) }}
+            placeholder="https://..."
+            className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600"
+          />
+          <button onClick={insertLink} className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg transition-colors">Vložiť</button>
+          <button onClick={() => setLinkOpen(false)} className="text-gray-600 hover:text-gray-400 text-xs">✕</button>
+        </div>
+      )}
+
+      {/* ── Embed panel ─────────────────────────────────────────────────── */}
+      {embedOpen && (
+        <div className="px-3 py-3 bg-gray-800 border-b border-gray-700 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400 font-medium">Vložiť HTML / iframe kód</span>
+            <button onClick={() => setEmbedOpen(false)} className="text-gray-600 hover:text-gray-400 text-xs">✕</button>
+          </div>
+          <textarea
+            autoFocus
+            value={embedCode}
+            onChange={e => setEmbedCode(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') setEmbedOpen(false) }}
+            placeholder={'<iframe src="..." width="100%" height="400" frameborder="0"></iframe>'}
+            rows={4}
+            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-green-400 font-mono outline-none focus:border-blue-600 transition-colors resize-none placeholder-gray-700"
+          />
+          <div className="flex gap-2">
+            <button onClick={insertEmbed} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors">Vložiť</button>
+            <span className="text-xs text-gray-600 self-center">Podporuje iframe, YouTube, mapy, formuláre…</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Editable area ───────────────────────────────────────────────── */}
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        onInput={e => onChange(e.currentTarget.innerHTML)}
-        className="min-h-64 px-4 py-3 text-sm text-gray-200 outline-none prose prose-invert prose-sm max-w-none"
+        onInput={sync}
+        onDrop={onDrop}
+        onDragOver={e => e.preventDefault()}
+        onKeyDown={e => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); exec('bold') }
+          if ((e.metaKey || e.ctrlKey) && e.key === 'i') { e.preventDefault(); exec('italic') }
+          if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); saveSelection(); setLinkOpen(true) }
+        }}
+        className="min-h-72 px-4 py-4 text-sm text-gray-200 outline-none prose prose-invert prose-sm max-w-none
+          [&_blockquote]:border-l-4 [&_blockquote]:border-blue-500 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-gray-400
+          [&_.embed-block]:bg-gray-800 [&_.embed-block]:rounded-lg [&_.embed-block]:p-2
+          [&_img]:max-w-full [&_img]:rounded-lg [&_a]:text-blue-400 [&_a]:underline"
       />
+
+      <div className="px-4 py-1.5 border-t border-gray-800 text-xs text-gray-700">
+        Drag &amp; drop obrázky priamo do textu · Cmd+B tučné · Cmd+I kurzíva · Cmd+K odkaz
+      </div>
     </div>
   )
 }
