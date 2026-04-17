@@ -72,7 +72,7 @@ function DropdownItem({ item }: { item: NavItem }) {
         {item.label}
         <ChevronDown size={13} className="transition-transform group-hover:rotate-180" />
       </button>
-      <div className="absolute top-full left-0 mt-1 min-w-44 bg-white rounded-xl border border-black/5 py-1.5
+      <div className="absolute top-full left-0 mt-1 min-w-44 bg-white border border-black/5 py-1.5
                       opacity-0 invisible group-hover:opacity-100 group-hover:visible
                       transition-all duration-150 translate-y-1 group-hover:translate-y-0 z-50"
         style={{ boxShadow: 'var(--shadow)', borderRadius: 'var(--radius)' }}>

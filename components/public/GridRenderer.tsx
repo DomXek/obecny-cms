@@ -31,10 +31,12 @@ export default function GridRenderer({ blocks }: { blocks: Block[] }) {
         {blocks.map(block => (
           <div
             key={block.id}
-            className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 overflow-hidden"
+            className="bg-white border border-gray-100 p-4 overflow-hidden"
             style={{
               gridColumn: `${block.col + 1} / ${block.col + block.colSpan + 1}`,
               gridRow:    `${block.row + 1} / ${block.row + block.rowSpan + 1}`,
+              borderRadius: 'var(--radius)',
+              boxShadow: 'var(--shadow)',
             }}
           >
             <WidgetSwitch block={block} />
@@ -49,8 +51,8 @@ export default function GridRenderer({ blocks }: { blocks: Block[] }) {
           .map(block => (
             <div
               key={block.id}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm p-4"
-              style={{ minHeight: `${block.rowSpan * ROW_H}px` }}
+              className="bg-white border border-gray-100 p-4"
+              style={{ minHeight: `${block.rowSpan * ROW_H}px`, borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}
             >
               <WidgetSwitch block={block} />
             </div>

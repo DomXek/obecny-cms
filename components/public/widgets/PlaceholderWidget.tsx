@@ -8,7 +8,7 @@ const LABELS: Record<string, string> = {
 
 export default function PlaceholderWidget({ type }: { type: string }) {
   return (
-    <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
+    <div className="h-full flex items-center justify-center bg-gray-50 border border-dashed border-gray-200" style={{ borderRadius: 'var(--radius)' }}>
       <span className="text-sm text-gray-400">{LABELS[type] ?? type}</span>
     </div>
   )

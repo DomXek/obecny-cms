@@ -30,7 +30,8 @@ export default async function AktualityPublicPage() {
             <Link
               key={item.id}
               href={`/aktuality/${item.slug}`}
-              className="block bg-white border border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-sm transition-all group"
+              className="block bg-white border border-gray-200 p-6 hover:border-gray-300 transition-all group"
+              style={{ borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}
             >
               <div className="flex items-center gap-3 text-xs text-gray-400 mb-2">
                 <span>{formatDate(item.published_at ?? item.created_at)}</span>
