@@ -1,20 +1,22 @@
-import { Menu } from 'lucide-react'
+import { createServiceClient } from '@/lib/supabase/service'
+import { NavConfig, PageLayout } from '@/lib/types'
+import MenuEditor from './MenuEditor'
 
-export default function Page() {
-  return (
-    <div className="flex-1 flex flex-col h-full bg-gray-950 text-white">
-      <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center px-6 shrink-0">
-        <Menu size={16} className="text-gray-400 mr-2" />
-        <span className="text-sm font-semibold">Navigačné menu</span>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Menu size={28} className="text-gray-600" />
-          </div>
-          <p className="text-gray-500 text-sm">Navigačné menu — čoskoro</p>
-        </div>
-      </div>
-    </div>
-  )
+export const dynamic = 'force-dynamic'
+
+const DEFAULT_NAV: NavConfig = {
+  style: 'simple',
+  position: 'center',
+  items: [{ id: 'domov', label: 'Domov', slug: 'domov' }],
+}
+
+export default async function MenuPage() {
+  const supabase = createServiceClient()
+  const { data: page } = await supabase
+    .from('pages').select('layout').eq('slug', 'domov').single()
+
+  const layout = page?.layout as PageLayout | undefined
+  const nav: NavConfig = layout?.nav ?? DEFAULT_NAV
+
+  return <MenuEditor initialNav={nav} />
 }

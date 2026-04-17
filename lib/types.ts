@@ -23,11 +23,16 @@ export interface Block {
 }
 
 export interface NavItem {
+  id?: string
   label: string
   slug: string
+  children?: NavItem[]   // Level 2 (dropdown items / mega column links)
 }
 
+export type NavStyle = 'simple' | 'dropdown' | 'mega'
+
 export interface NavConfig {
+  style?: NavStyle          // default: 'simple'
   position: 'left' | 'center' | 'right'
   items: NavItem[]
 }
