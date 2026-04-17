@@ -8,8 +8,9 @@ import {
 } from '@dnd-kit/core'
 import { Eye, Save, Check } from 'lucide-react'
 import { PageLayout, Block, WIDGET_DEFS, WidgetType, uid } from '@/lib/types'
+import { COLS, ROW_H, GAP, xToCol, yToRow } from '@/lib/gridUtils'
 import Sidebar from './Sidebar'
-import GridBlock, { COLS, ROW_H, GAP } from './GridBlock'
+import GridBlock from './GridBlock'
 import TextEditor from './TextEditor'
 
 const DEFAULT_LAYOUT: PageLayout = {
@@ -25,81 +26,79 @@ interface Props {
   initialLayout: PageLayout | null
 }
 
-// ── Calculate how many rows the grid needs ────────────────────────────────────
+interface Ghost {
+  col: number
+  row: number
+  colSpan: number
+  rowSpan: number
+}
+
+// ── How many rows the grid needs ──────────────────────────────────────────────
 function gridRows(blocks: Block[]): number {
-  if (blocks.length === 0) return 6
-  const max = Math.max(...blocks.map(b => b.row + b.rowSpan))
-  return max + 3  // a few empty rows below
-}
-
-// ── Next free row (below all existing blocks) ─────────────────────────────────
-function nextRow(blocks: Block[]): number {
-  if (blocks.length === 0) return 0
-  return Math.max(...blocks.map(b => b.row + b.rowSpan))
-}
-
-// ── Drop Ghost ────────────────────────────────────────────────────────────────
-function DropGhost({ col, row, colSpan }: { col: number; row: number; colSpan: number }) {
-  return (
-    <div
-      className="pointer-events-none rounded-xl bg-blue-400/20 border-2 border-blue-400 border-dashed z-50"
-      style={{
-        gridColumn: `${col + 1} / ${col + colSpan + 1}`,
-        gridRow:    `${row + 1} / ${row + 2}`,
-      }}
-    />
-  )
+  if (blocks.length === 0) return 8
+  return Math.max(...blocks.map(b => b.row + b.rowSpan)) + 4
 }
 
 // ── Canvas ────────────────────────────────────────────────────────────────────
 function Canvas({
-  blocks,
-  onUpdate,
-  onDelete,
-  onEdit,
-  dragGhost,
-  canvasRef,
+  blocks, ghost, canvasRef, onUpdate, onDelete, onEdit,
 }: {
   blocks: Block[]
+  ghost: Ghost | null
+  canvasRef: React.RefObject<HTMLDivElement | null>
   onUpdate: (b: Block) => void
   onDelete: (id: string) => void
   onEdit: (id: string) => void
-  dragGhost: { col: number; row: number; colSpan: number } | null
-  canvasRef: React.RefObject<HTMLDivElement | null>
 }) {
+  const rows = gridRows(blocks)
   const { setNodeRef, isOver } = useDroppable({ id: 'canvas' })
 
-  const rows = gridRows(blocks)
-
-  function mergeRefs(el: HTMLDivElement | null) {
+  function mergeRef(el: HTMLDivElement | null) {
     (canvasRef as React.MutableRefObject<HTMLDivElement | null>).current = el
     setNodeRef(el)
   }
 
   return (
     <div
-      ref={mergeRefs}
-      className={`relative rounded-2xl transition-colors ${isOver ? 'bg-blue-50/60' : 'bg-white'} shadow-sm`}
+      ref={mergeRef}
+      className={`relative rounded-2xl transition-colors ${isOver ? 'ring-2 ring-blue-300' : ''}`}
       style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${COLS}, 1fr)`,
-        gridTemplateRows: `repeat(${rows}, ${ROW_H}px)`,
+        gridAutoRows: `${ROW_H}px`,
         gap: `${GAP}px`,
         padding: `${GAP}px`,
         minHeight: `${rows * (ROW_H + GAP) + GAP}px`,
+        background: 'white',
+        borderRadius: '16px',
+        boxShadow: '0 1px 4px 0 rgba(0,0,0,0.06)',
       }}
     >
-      {/* Subtle column guide lines (always visible) */}
-      {Array.from({ length: COLS }).map((_, i) => (
+      {/* Column guide cells — placed via CSS Grid, behind everything */}
+      {Array.from({ length: COLS }).map((_, c) => (
         <div
-          key={i}
-          className="rounded-lg bg-gray-50 border border-gray-100 pointer-events-none"
+          key={`guide-${c}`}
+          aria-hidden="true"
+          className="pointer-events-none rounded-lg"
           style={{
-            gridColumn: `${i + 1} / ${i + 2}`,
+            gridColumn: `${c + 1} / ${c + 2}`,
             gridRow: `1 / ${rows + 1}`,
+            background: 'rgba(0,0,0,0.018)',
+            border: '1px dashed rgba(0,0,0,0.06)',
           }}
         />
       ))}
+
+      {/* Drop ghost */}
+      {ghost && (
+        <div
+          className="pointer-events-none rounded-xl border-2 border-blue-400 border-dashed bg-blue-50 z-50"
+          style={{
+            gridColumn: `${ghost.col + 1} / ${ghost.col + ghost.colSpan + 1}`,
+            gridRow:    `${ghost.row + 1} / ${ghost.row + ghost.rowSpan + 1}`,
+          }}
+        />
+      )}
 
       {/* Blocks */}
       {blocks.map(block => (
@@ -112,9 +111,6 @@ function Canvas({
           onEdit={() => onEdit(block.id)}
         />
       ))}
-
-      {/* Drop ghost */}
-      {dragGhost && <DropGhost {...dragGhost} />}
     </div>
   )
 }
@@ -122,12 +118,12 @@ function Canvas({
 // ── Main Editor ───────────────────────────────────────────────────────────────
 export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: Props) {
   const [layout, setLayout] = useState<PageLayout>(
-    initialLayout?.blocks ? initialLayout : DEFAULT_LAYOUT
+    initialLayout?.blocks !== undefined ? initialLayout : DEFAULT_LAYOUT
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [draggingType, setDraggingType] = useState<WidgetType | null>(null)
-  const [dragGhost, setDragGhost] = useState<{ col: number; row: number; colSpan: number } | null>(null)
+  const [ghost, setGhost] = useState<Ghost | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
@@ -146,67 +142,75 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     setTimeout(() => setSaved(false), 2500)
   }
 
-  // ── Block helpers ─────────────────────────────────────────────────────────
-  function updateBlock(updated: Block) {
-    setLayout(l => ({ ...l, blocks: l.blocks.map(b => b.id === updated.id ? updated : b) }))
+  // ── Block CRUD ────────────────────────────────────────────────────────────
+  function updateBlock(b: Block) {
+    setLayout(l => ({ ...l, blocks: l.blocks.map(x => x.id === b.id ? b : x) }))
   }
 
   function deleteBlock(id: string) {
     setLayout(l => ({ ...l, blocks: l.blocks.filter(b => b.id !== id) }))
   }
 
-  function addBlock(type: WidgetType, col: number) {
+  function addBlock(type: WidgetType, col: number, row: number) {
     const colSpan = Math.min(6, COLS - col)
-    const block: Block = {
-      id: uid(),
-      type,
-      col,
-      row: nextRow(layout.blocks),
-      colSpan,
-      rowSpan: 2,
-      content: { ...WIDGET_DEFS[type].defaultContent },
+    setLayout(l => ({
+      ...l,
+      blocks: [...l.blocks, {
+        id: uid(),
+        type,
+        col,
+        row,
+        colSpan,
+        rowSpan: 2,
+        content: { ...WIDGET_DEFS[type].defaultContent },
+      }],
+    }))
+  }
+
+  // ── Compute drop position from drag event ─────────────────────────────────
+  function dropPos(e: { activatorEvent: Event; delta: { x: number; y: number } }) {
+    if (!canvasRef.current) return { col: 0, row: 0 }
+    const ae = e.activatorEvent as MouseEvent
+    const cx = ae.clientX + e.delta.x
+    const cy = ae.clientY + e.delta.y
+    return {
+      col: xToCol(cx, canvasRef.current),
+      row: yToRow(cy, canvasRef.current),
     }
-    setLayout(l => ({ ...l, blocks: [...l.blocks, block] }))
   }
 
-  // ── Calculate ghost position while dragging ───────────────────────────────
-  function calcGhostCol(clientX: number): number {
-    if (!canvasRef.current) return 0
-    const rect = canvasRef.current.getBoundingClientRect()
-    const relX = clientX - rect.left - GAP
-    const cw = (rect.width - 2 * GAP - (COLS - 1) * GAP) / COLS
-    return Math.max(0, Math.min(COLS - 1, Math.floor(relX / (cw + GAP))))
-  }
-
-  // ── DnD handlers ──────────────────────────────────────────────────────────
+  // ── DnD ───────────────────────────────────────────────────────────────────
   function onDragStart(e: DragStartEvent) {
     if (e.active.data.current?.from === 'sidebar') {
       setDraggingType(e.active.data.current.widgetType as WidgetType)
     }
   }
 
-  function onDragMove(e: { activatorEvent: Event; delta: { x: number; y: number } }) {
-    if (!draggingType) return
-    const ae = e.activatorEvent as MouseEvent
-    const col = calcGhostCol(ae.clientX + e.delta.x)
+  function onDragMove(e: { activatorEvent: Event; delta: { x: number; y: number }; over: { id: string } | null }) {
+    if (!draggingType || !canvasRef.current) return
+    if (e.over?.id !== 'canvas') { setGhost(null); return }
+    const { col, row } = dropPos(e)
     const colSpan = Math.min(6, COLS - col)
-    setDragGhost({ col, row: nextRow(layout.blocks), colSpan })
+    setGhost({ col, row, colSpan, rowSpan: 2 })
   }
 
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e
     setDraggingType(null)
-    setDragGhost(null)
-
+    setGhost(null)
     if (active.data.current?.from === 'sidebar' && over?.id === 'canvas') {
-      const ae = e.activatorEvent as MouseEvent
-      const col = calcGhostCol(ae.clientX + e.delta.x)
-      addBlock(active.data.current.widgetType as WidgetType, col)
+      const { col, row } = dropPos(e as never)
+      addBlock(active.data.current.widgetType as WidgetType, col, row)
     }
   }
 
   // ── Text editing ──────────────────────────────────────────────────────────
   const editingBlock = editingId ? layout.blocks.find(b => b.id === editingId) ?? null : null
+
+  function handleEdit(id: string) {
+    const b = layout.blocks.find(x => x.id === id)
+    if (b?.type === 'text') setEditingId(id)
+  }
 
   function updateEditingHtml(html: string) {
     if (!editingId) return
@@ -218,11 +222,6 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     }))
   }
 
-  function handleEdit(id: string) {
-    const block = layout.blocks.find(b => b.id === id)
-    if (block?.type === 'text') setEditingId(id)
-  }
-
   return (
     <DndContext
       sensors={sensors}
@@ -232,25 +231,23 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     >
       <div className="flex h-screen bg-gray-950 overflow-hidden">
 
-        {/* Sidebar */}
         <Sidebar />
 
-        {/* Main area */}
         <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* Topbar */}
           <div className="h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-5 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">🏛</div>
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-base">🏛</div>
               <span className="text-sm font-semibold text-white">{pageTitle}</span>
-              <span className="text-gray-600 text-sm hidden sm:inline">— Page Editor</span>
+              <span className="text-gray-600 text-sm">— Editor</span>
             </div>
             <div className="flex items-center gap-2">
               <a
                 href={`/${pageSlug}?preview=1`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600 rounded-lg transition-colors"
               >
                 <Eye size={14} /> Náhľad
               </a>
@@ -285,28 +282,28 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
               {/* Grid canvas */}
               <Canvas
                 blocks={layout.blocks}
+                ghost={ghost}
+                canvasRef={canvasRef}
                 onUpdate={updateBlock}
                 onDelete={deleteBlock}
                 onEdit={handleEdit}
-                dragGhost={dragGhost}
-                canvasRef={canvasRef}
               />
 
-              {layout.blocks.length === 0 && (
-                <p className="text-center text-sm text-gray-400 py-2">
-                  Pretiahnite widget zo sidebaru na canvas
+              {layout.blocks.length === 0 && !ghost && (
+                <p className="text-center text-xs text-gray-400 py-1">
+                  Pretiahnite widget zo sidebaru na canvas ↑
                 </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Drag overlay */}
+        {/* Drag overlay — ghost chip following cursor */}
         <DragOverlay dropAnimation={null}>
           {draggingType ? (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white shadow-2xl opacity-90">
-              <span className="text-xl">{WIDGET_DEFS[draggingType].icon}</span>
-              <span className="text-sm font-semibold">{WIDGET_DEFS[draggingType].label}</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white shadow-2xl opacity-90 text-sm font-semibold">
+              <span>{WIDGET_DEFS[draggingType].icon}</span>
+              <span>{WIDGET_DEFS[draggingType].label}</span>
             </div>
           ) : null}
         </DragOverlay>
