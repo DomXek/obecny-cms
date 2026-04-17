@@ -231,7 +231,7 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
       onDragMove={onDragMove as never}
       onDragEnd={onDragEnd}
     >
-      <div className="flex h-screen bg-gray-950 overflow-hidden">
+      <div className="flex h-full bg-gray-950 overflow-hidden">
 
         <Sidebar />
 
