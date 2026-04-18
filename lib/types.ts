@@ -44,6 +44,8 @@ export interface HeroConfig {
   bgColor?: string   // solid color (overrides gradient)
   bgFrom?: string    // gradient start
   bgTo?: string      // gradient end
+  bgImage?: string   // background photo URL
+  bgOverlay?: number // dark overlay opacity 0–100 (default 40)
 }
 
 export interface PageLayout {
