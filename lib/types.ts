@@ -124,6 +124,58 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
   },
 }
 
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+export type FooterStyle = 'columns' | 'simple' | 'minimal'
+
+export type SocialPlatform = 'facebook' | 'instagram' | 'youtube' | 'twitter' | 'linkedin'
+
+export interface FooterLink {
+  label: string
+  href: string
+}
+
+export interface FooterColumn {
+  id: string
+  heading: string
+  links: FooterLink[]
+}
+
+export interface FooterSocialLink {
+  platform: SocialPlatform
+  url: string
+}
+
+export interface FooterConfig {
+  style: FooterStyle
+  siteName: string
+  tagline?: string
+  address?: string
+  phone?: string
+  email?: string
+  ico?: string
+  columns: FooterColumn[]
+  socialLinks: FooterSocialLink[]
+  copyright?: string
+}
+
+export const DEFAULT_FOOTER: FooterConfig = {
+  style: 'columns',
+  siteName: 'Obec',
+  tagline: 'Oficiálna webstránka obce',
+  address: '',
+  phone: '',
+  email: '',
+  ico: '',
+  columns: [
+    { id: 'col1', heading: 'Rýchle odkazy', links: [{ label: 'Domov', href: '/' }, { label: 'Aktuality', href: '/aktuality' }] },
+  ],
+  socialLinks: [],
+  copyright: '',
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
 export function uid(): string {
   return Math.random().toString(36).slice(2, 10)
 }

@@ -45,6 +45,7 @@ const SECTIONS: NavSection[] = [
       { label: 'Templates', href: '/admin/design/templates' },
       { label: 'Wireframe', href: '/admin/design/wireframe' },
       { label: 'Navigačné menu', href: '/admin/design/menu' },
+      { label: 'Footer', href: '/admin/design/footer' },
       { label: 'Štýl', href: '/admin/design/styl' },
     ],
   },
