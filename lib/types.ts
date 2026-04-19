@@ -1,5 +1,8 @@
 export type WidgetType =
   | 'text'
+  | 'image_text'
+  | 'cta'
+  | 'cards'
   | 'notices'
   | 'news'
   | 'events'
@@ -85,6 +88,44 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
     icon: '¶',
     description: 'Textový blok s formátovaním',
     defaultContent: { html: '<h2>Nadpis sekcie</h2><p>Tu napíšte váš text. Kliknite pre editáciu.</p>' },
+  },
+  image_text: {
+    label: 'Foto + Text',
+    icon: '🖼',
+    description: 'Obrázok vedľa textu s voliteľným tlačidlom',
+    defaultContent: {
+      imageUrl: '',
+      imagePosition: 'right',
+      heading: 'Nadpis sekcie',
+      text: '<p>Tu napíšte váš text. Môžete ho formátovať podľa potreby.</p>',
+      buttonLabel: '',
+      buttonUrl: '',
+    },
+  },
+  cta: {
+    label: 'CTA sekcia',
+    icon: '🎯',
+    description: 'Výzva k akcii s nadpisom a tlačidlom',
+    defaultContent: {
+      heading: 'Kontaktujte nás',
+      subtext: 'Sme tu pre vás každý pracovný deň',
+      buttonLabel: 'Zistiť viac',
+      buttonUrl: '/kontakt',
+      align: 'center',
+    },
+  },
+  cards: {
+    label: 'Karty',
+    icon: '🃏',
+    description: 'Mriežka kariet — služby, tím, features',
+    defaultContent: {
+      columns: 3,
+      items: [
+        { icon: '⭐', title: 'Služba 1', desc: 'Krátky popis prvej služby alebo výhody.' },
+        { icon: '🚀', title: 'Služba 2', desc: 'Krátky popis druhej služby alebo výhody.' },
+        { icon: '💡', title: 'Služba 3', desc: 'Krátky popis tretej služby alebo výhody.' },
+      ],
+    },
   },
   notices: {
     label: 'Úradná tabuľa',

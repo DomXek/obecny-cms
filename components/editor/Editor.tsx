@@ -14,6 +14,9 @@ import GridBlock from './GridBlock'
 import TextEditor from './TextEditor'
 import HeroEditor from './HeroEditor'
 import NavEditor from './NavEditor'
+import BlockEditorModal from './BlockEditorModal'
+
+const BLOCK_EDITOR_TYPES = new Set(['image_text', 'cta', 'cards'])
 
 const DEFAULT_LAYOUT: PageLayout = {
   nav: { position: 'center', items: [{ label: 'Domov', slug: 'domov' }] },
@@ -211,7 +214,8 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
 
   function handleEdit(id: string) {
     const b = layout.blocks.find(x => x.id === id)
-    if (b?.type === 'text') setEditingId(id)
+    if (!b) return
+    if (b.type === 'text' || BLOCK_EDITOR_TYPES.has(b.type)) setEditingId(id)
   }
 
   function updateEditingHtml(html: string) {
@@ -327,6 +331,15 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
               />
             </div>
           </div>
+        )}
+
+        {/* Block editor panel (image_text / cta / cards) */}
+        {editingBlock && BLOCK_EDITOR_TYPES.has(editingBlock.type) && (
+          <BlockEditorModal
+            block={editingBlock}
+            onUpdate={updateBlock}
+            onClose={() => setEditingId(null)}
+          />
         )}
       </div>
     </DndContext>

@@ -1,14 +1,23 @@
 import { Block } from '@/lib/types'
 import { COLS, ROW_H, GAP } from '@/lib/gridUtils'
 import TextWidget from './widgets/TextWidget'
+import ImageTextWidget from './widgets/ImageTextWidget'
+import CtaWidget from './widgets/CtaWidget'
+import CardsWidget from './widgets/CardsWidget'
 import NewsWidget from './widgets/NewsWidget'
 import PlaceholderWidget from './widgets/PlaceholderWidget'
 
+// Blocks that manage their own background — no padding, no card wrapper
+const FULL_BLEED = new Set(['cta'])
+
 function WidgetSwitch({ block }: { block: Block }) {
   switch (block.type) {
-    case 'text':    return <TextWidget content={block.content} />
-    case 'news':    return <NewsWidget />
-    default:        return <PlaceholderWidget type={block.type} />
+    case 'text':       return <TextWidget content={block.content} />
+    case 'image_text': return <ImageTextWidget content={block.content} />
+    case 'cta':        return <CtaWidget content={block.content} />
+    case 'cards':      return <CardsWidget content={block.content} />
+    case 'news':       return <NewsWidget />
+    default:           return <PlaceholderWidget type={block.type} />
   }
 }
 
@@ -28,35 +37,45 @@ export default function GridRenderer({ blocks }: { blocks: Block[] }) {
           gap: `${GAP}px`,
         }}
       >
-        {blocks.map(block => (
-          <div
-            key={block.id}
-            className="bg-white border border-gray-100 p-4 overflow-hidden"
-            style={{
-              gridColumn: `${block.col + 1} / ${block.col + block.colSpan + 1}`,
-              gridRow:    `${block.row + 1} / ${block.row + block.rowSpan + 1}`,
-              borderRadius: 'var(--radius)',
-              boxShadow: 'var(--shadow)',
-            }}
-          >
-            <WidgetSwitch block={block} />
-          </div>
-        ))}
+        {blocks.map(block => {
+          const fullBleed = FULL_BLEED.has(block.type)
+          return (
+            <div
+              key={block.id}
+              className={`overflow-hidden ${fullBleed ? '' : 'bg-white border border-black/6 p-4'}`}
+              style={{
+                gridColumn: `${block.col + 1} / ${block.col + block.colSpan + 1}`,
+                gridRow:    `${block.row + 1} / ${block.row + block.rowSpan + 1}`,
+                borderRadius: 'var(--radius)',
+                boxShadow: fullBleed ? 'none' : 'var(--shadow)',
+              }}
+            >
+              <WidgetSwitch block={block} />
+            </div>
+          )
+        })}
       </div>
 
       {/* Mobile: sorted stack */}
       <div className="flex flex-col gap-4 md:hidden">
         {[...blocks]
           .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col)
-          .map(block => (
-            <div
-              key={block.id}
-              className="bg-white border border-gray-100 p-4"
-              style={{ minHeight: `${block.rowSpan * ROW_H}px`, borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}
-            >
-              <WidgetSwitch block={block} />
-            </div>
-          ))
+          .map(block => {
+            const fullBleed = FULL_BLEED.has(block.type)
+            return (
+              <div
+                key={block.id}
+                className={`overflow-hidden ${fullBleed ? '' : 'bg-white border border-black/6 p-4'}`}
+                style={{
+                  minHeight: `${block.rowSpan * ROW_H}px`,
+                  borderRadius: 'var(--radius)',
+                  boxShadow: fullBleed ? 'none' : 'var(--shadow)',
+                }}
+              >
+                <WidgetSwitch block={block} />
+              </div>
+            )
+          })
         }
       </div>
     </section>

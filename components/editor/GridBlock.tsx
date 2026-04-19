@@ -102,6 +102,67 @@ export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit 
   // ── Render ───────────────────────────────────────────────────────────────
   const hasHtml = block.type === 'text' && (block.content.html as string | undefined)
 
+  function BlockPreview() {
+    if (hasHtml) {
+      return (
+        <div
+          className="p-5 prose prose-sm max-w-none text-gray-800 h-full overflow-hidden"
+          dangerouslySetInnerHTML={{ __html: block.content.html as string }}
+        />
+      )
+    }
+    if (block.type === 'image_text') {
+      const heading = (block.content.heading as string) ?? 'Foto + Text'
+      const hasImg  = !!(block.content.imageUrl as string)
+      return (
+        <div className="flex gap-3 h-full p-3 items-center">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-gray-700 truncate">{heading}</div>
+            <div className="text-[10px] text-gray-400 mt-1">Foto + text sekcia</div>
+          </div>
+          <div className={`w-16 h-12 rounded-lg flex items-center justify-center text-xl shrink-0 ${hasImg ? 'bg-blue-100' : 'bg-gray-100'}`}>
+            {hasImg ? '🖼' : '🖼'}
+          </div>
+        </div>
+      )
+    }
+    if (block.type === 'cta') {
+      const heading = (block.content.heading as string) ?? 'CTA'
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-1.5 bg-blue-600 rounded-xl p-3">
+          <div className="text-xs font-bold text-white truncate max-w-full">{heading}</div>
+          <div className="px-3 py-1 bg-white rounded text-[10px] font-semibold text-blue-700">
+            {(block.content.buttonLabel as string) ?? 'Tlačidlo'}
+          </div>
+        </div>
+      )
+    }
+    if (block.type === 'cards') {
+      const cols  = (block.content.columns as number) ?? 3
+      const items = (block.content.items as { icon: string; title: string }[]) ?? []
+      return (
+        <div className="h-full p-3">
+          <div className="text-[10px] text-gray-400 mb-2">{items.length} kariet · {cols} stĺpce</div>
+          <div className={`grid gap-1.5`} style={{ gridTemplateColumns: `repeat(${Math.min(cols, 3)}, 1fr)` }}>
+            {items.slice(0, 3).map((item, i) => (
+              <div key={i} className="bg-gray-50 rounded-lg p-1.5 text-center">
+                <div className="text-base">{item.icon}</div>
+                <div className="text-[9px] text-gray-600 font-medium truncate">{item.title}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-400">
+        <span className="text-3xl">{def.icon}</span>
+        <span className="text-sm font-semibold">{def.label}</span>
+        <span className="text-xs opacity-50">{block.colSpan} st. × {block.rowSpan} r.</span>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`group/block relative select-none ${active ? 'z-50' : 'z-10 hover:z-20'}`}
@@ -119,18 +180,7 @@ export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit 
         } bg-white`}
         onClick={() => { if (!active) onEdit() }}
       >
-        {hasHtml ? (
-          <div
-            className="p-5 prose prose-sm max-w-none text-gray-800 h-full overflow-hidden"
-            dangerouslySetInnerHTML={{ __html: block.content.html as string }}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-400">
-            <span className="text-3xl">{def.icon}</span>
-            <span className="text-sm font-semibold">{def.label}</span>
-            <span className="text-xs opacity-50">{block.colSpan} st. × {block.rowSpan} r.</span>
-          </div>
-        )}
+        <BlockPreview />
       </div>
 
       {/* Top toolbar — appears on hover */}
