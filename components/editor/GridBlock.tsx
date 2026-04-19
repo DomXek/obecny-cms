@@ -104,25 +104,20 @@ export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit 
 
   function BlockPreview() {
     if (hasHtml) {
+      const hasImg = !!(block.content.imageUrl as string)
+      const imgPos = (block.content.imagePosition as string) ?? 'right'
       return (
-        <div
-          className="p-5 prose prose-sm max-w-none text-gray-800 h-full overflow-hidden"
-          dangerouslySetInnerHTML={{ __html: block.content.html as string }}
-        />
-      )
-    }
-    if (block.type === 'image_text') {
-      const heading = (block.content.heading as string) ?? 'Foto + Text'
-      const hasImg  = !!(block.content.imageUrl as string)
-      return (
-        <div className="flex gap-3 h-full p-3 items-center">
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-gray-700 truncate">{heading}</div>
-            <div className="text-[10px] text-gray-400 mt-1">Foto + text sekcia</div>
-          </div>
-          <div className={`w-16 h-12 rounded-lg flex items-center justify-center text-xl shrink-0 ${hasImg ? 'bg-blue-100' : 'bg-gray-100'}`}>
-            {hasImg ? '🖼' : '🖼'}
-          </div>
+        <div className="flex gap-2 h-full overflow-hidden">
+          {hasImg && imgPos === 'left' && (
+            <div className="w-1/3 shrink-0 bg-gray-100 rounded-lg" />
+          )}
+          <div
+            className="flex-1 p-4 prose prose-sm max-w-none text-gray-800 overflow-hidden"
+            dangerouslySetInnerHTML={{ __html: block.content.html as string }}
+          />
+          {hasImg && imgPos === 'right' && (
+            <div className="w-1/3 shrink-0 bg-gray-100 rounded-lg" />
+          )}
         </div>
       )
     }

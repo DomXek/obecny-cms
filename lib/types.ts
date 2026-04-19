@@ -1,6 +1,5 @@
 export type WidgetType =
   | 'text'
-  | 'image_text'
   | 'cta'
   | 'cards'
   | 'notices'
@@ -88,19 +87,6 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
     icon: '¶',
     description: 'Textový blok s formátovaním',
     defaultContent: { html: '<h2>Nadpis sekcie</h2><p>Tu napíšte váš text. Kliknite pre editáciu.</p>' },
-  },
-  image_text: {
-    label: 'Foto + Text',
-    icon: '🖼',
-    description: 'Obrázok vedľa textu s voliteľným tlačidlom',
-    defaultContent: {
-      imageUrl: '',
-      imagePosition: 'right',
-      heading: 'Nadpis sekcie',
-      text: '<p>Tu napíšte váš text. Môžete ho formátovať podľa potreby.</p>',
-      buttonLabel: '',
-      buttonUrl: '',
-    },
   },
   cta: {
     label: 'CTA sekcia',

@@ -1,7 +1,6 @@
 import { Block } from '@/lib/types'
 import { COLS, ROW_H, GAP } from '@/lib/gridUtils'
 import TextWidget from './widgets/TextWidget'
-import ImageTextWidget from './widgets/ImageTextWidget'
 import CtaWidget from './widgets/CtaWidget'
 import CardsWidget from './widgets/CardsWidget'
 import NewsWidget from './widgets/NewsWidget'
@@ -12,9 +11,8 @@ const FULL_BLEED = new Set(['cta'])
 
 function WidgetSwitch({ block }: { block: Block }) {
   switch (block.type) {
-    case 'text':       return <TextWidget content={block.content} />
-    case 'image_text': return <ImageTextWidget content={block.content} />
-    case 'cta':        return <CtaWidget content={block.content} />
+    case 'text':  return <TextWidget content={block.content} />
+    case 'cta':   return <CtaWidget content={block.content} />
     case 'cards':      return <CardsWidget content={block.content} />
     case 'news':       return <NewsWidget />
     default:           return <PlaceholderWidget type={block.type} />

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { X, Upload, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { X, Plus, Trash2 } from 'lucide-react'
 import { Block } from '@/lib/types'
 
 interface Props {
@@ -30,103 +30,6 @@ function TextInput({ value, onChange, placeholder }: { value: string; onChange: 
       placeholder={placeholder}
       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400"
     />
-  )
-}
-
-// ── image_text panel ──────────────────────────────────────────────────────────
-
-function ImageTextPanel({ block, onUpdate }: { block: Block; onUpdate: (b: Block) => void }) {
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const c = block.content
-  function set(key: string, value: unknown) {
-    onUpdate({ ...block, content: { ...c, [key]: value } })
-  }
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: form })
-      const json = await res.json()
-      if (json.url) set('imageUrl', json.url)
-    } finally {
-      setUploading(false)
-      if (fileRef.current) fileRef.current.value = ''
-    }
-  }
-
-  return (
-    <div>
-      <Field label="Nadpis">
-        <TextInput value={(c.heading as string) ?? ''} onChange={v => set('heading', v)} placeholder="Nadpis sekcie" />
-      </Field>
-
-      <Field label="Text">
-        <textarea
-          value={(c.text as string) ?? ''}
-          onChange={e => set('text', e.target.value)}
-          placeholder="Text sekcie..."
-          rows={4}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 resize-none"
-        />
-        <p className="text-xs text-gray-400 mt-1">Môžete použiť základné HTML: &lt;b&gt;, &lt;i&gt;, &lt;br&gt;</p>
-      </Field>
-
-      <Field label="Tlačidlo — text">
-        <TextInput value={(c.buttonLabel as string) ?? ''} onChange={v => set('buttonLabel', v)} placeholder="Zistiť viac (nechajte prázdne ak nechcete)" />
-      </Field>
-
-      <Field label="Tlačidlo — odkaz">
-        <TextInput value={(c.buttonUrl as string) ?? ''} onChange={v => set('buttonUrl', v)} placeholder="/kontakt" />
-      </Field>
-
-      <Field label="Poloha obrázka">
-        <div className="flex gap-2">
-          {(['left', 'right'] as const).map(pos => (
-            <button
-              key={pos}
-              onClick={() => set('imagePosition', pos)}
-              className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
-                (c.imagePosition ?? 'right') === pos
-                  ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              {pos === 'left' ? '← Vľavo' : 'Vpravo →'}
-            </button>
-          ))}
-        </div>
-      </Field>
-
-      <Field label="Obrázok">
-        {!!c.imageUrl && (
-          <div className="relative mb-2 rounded-lg overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={c.imageUrl as string} alt="" className="w-full h-32 object-cover" />
-            <button
-              onClick={() => set('imageUrl', '')}
-              className="absolute top-1.5 right-1.5 p-1 bg-red-500 hover:bg-red-600 rounded-lg text-white"
-            >
-              <Trash2 size={11} />
-            </button>
-          </div>
-        )}
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="w-full flex items-center justify-center gap-2 text-xs border border-gray-200 hover:border-blue-400 hover:text-blue-600 rounded-lg px-3 py-2 transition-colors disabled:opacity-50"
-        >
-          <Upload size={12} />
-          {uploading ? 'Nahrávam...' : c.imageUrl ? 'Zmeniť obrázok' : 'Nahrať obrázok'}
-        </button>
-      </Field>
-    </div>
   )
 }
 
@@ -276,9 +179,8 @@ function CardsPanel({ block, onUpdate }: { block: Block; onUpdate: (b: Block) =>
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 const TITLES: Partial<Record<string, string>> = {
-  image_text: 'Foto + Text',
-  cta:        'CTA sekcia',
-  cards:      'Karty',
+  cta:   'CTA sekcia',
+  cards: 'Karty',
 }
 
 export default function BlockEditorModal({ block, onUpdate, onClose }: Props) {
@@ -302,8 +204,7 @@ export default function BlockEditorModal({ block, onUpdate, onClose }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          {block.type === 'image_text' && <ImageTextPanel block={block} onUpdate={onUpdate} />}
-          {block.type === 'cta'        && <CtaPanel       block={block} onUpdate={onUpdate} />}
+          {block.type === 'cta'   && <CtaPanel   block={block} onUpdate={onUpdate} />}
           {block.type === 'cards'      && <CardsPanel     block={block} onUpdate={onUpdate} />}
         </div>
       </div>

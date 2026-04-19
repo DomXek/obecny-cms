@@ -16,7 +16,7 @@ import HeroEditor from './HeroEditor'
 import NavEditor from './NavEditor'
 import BlockEditorModal from './BlockEditorModal'
 
-const BLOCK_EDITOR_TYPES = new Set(['image_text', 'cta', 'cards'])
+const BLOCK_EDITOR_TYPES = new Set(['cta', 'cards'])
 
 const DEFAULT_LAYOUT: PageLayout = {
   nav: { position: 'center', items: [{ label: 'Domov', slug: 'domov' }] },
@@ -218,12 +218,12 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     if (b.type === 'text' || BLOCK_EDITOR_TYPES.has(b.type)) setEditingId(id)
   }
 
-  function updateEditingHtml(html: string) {
+  function updateEditingContent(content: Record<string, unknown>) {
     if (!editingId) return
     setLayout(l => ({
       ...l,
       blocks: l.blocks.map(b =>
-        b.id === editingId ? { ...b, content: { ...b.content, html } } : b
+        b.id === editingId ? { ...b, content } : b
       ),
     }))
   }
@@ -325,8 +325,8 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
               onClick={e => e.stopPropagation()}
             >
               <TextEditor
-                html={(editingBlock.content.html as string) ?? ''}
-                onChange={updateEditingHtml}
+                content={editingBlock.content}
+                onChange={updateEditingContent}
                 onClose={() => setEditingId(null)}
               />
             </div>
