@@ -28,17 +28,18 @@ const DEFAULT_LAYOUT: PageLayout = {
 }
 
 interface Props {
-  pageId:        string
-  pageSlug:      string
-  pageTitle:     string
-  initialLayout: PageLayout | null
+  pageId:         string
+  pageSlug:       string
+  pageTitle:      string
+  initialLayout:  PageLayout | null
+  enabledPlugins: string[]
 }
 
 interface EditTarget { rowId: string; colIdx: number }
 
 // ── Main Editor ───────────────────────────────────────────────────────────────
 
-export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: Props) {
+export default function Editor({ pageId, pageSlug, pageTitle, initialLayout, enabledPlugins }: Props) {
   const [layout, setLayout] = useState<PageLayout>(() =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     migrateLayout((initialLayout ?? DEFAULT_LAYOUT) as any)
@@ -189,7 +190,7 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     >
       <div className="flex h-full bg-gray-950 overflow-hidden">
 
-        <Sidebar />
+        <Sidebar enabledPlugins={enabledPlugins} />
 
         <div className="flex-1 flex flex-col overflow-hidden">
 

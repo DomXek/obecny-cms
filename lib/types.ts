@@ -126,7 +126,7 @@ export interface Page {
 }
 
 // Widget metadata for the sidebar
-export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; description: string; defaultContent: Record<string, unknown> }> = {
+export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; description: string; defaultContent: Record<string, unknown>; pluginId?: string }> = {
   text: {
     label: 'Text',
     icon: '¶',
@@ -163,24 +163,28 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
     icon: '📋',
     description: 'Zoznam úradných oznámení',
     defaultContent: {},
+    pluginId: 'uradna-tabula',
   },
   news: {
     label: 'Aktuality',
     icon: '📰',
     description: 'Najnovšie správy a novinky',
     defaultContent: {},
+    pluginId: 'aktuality',
   },
   events: {
     label: 'Udalosti',
     icon: '📅',
     description: 'Kalendár podujatí',
     defaultContent: {},
+    pluginId: 'kalendar',
   },
   gallery: {
     label: 'Galéria',
     icon: '🖼',
     description: 'Fotogaléria',
     defaultContent: {},
+    pluginId: 'galeria',
   },
   contact: {
     label: 'Kontakt',
@@ -195,6 +199,12 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
     defaultContent: {},
   },
 }
+
+export const WIDGET_GROUPS: { label: string; types: WidgetType[] }[] = [
+  { label: 'Základné', types: ['text', 'cta', 'cards'] },
+  { label: 'Novinky & Udalosti', types: ['news', 'events'] },
+  { label: 'Špeciálne moduly', types: ['notices', 'gallery', 'contact', 'map'] },
+]
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 
