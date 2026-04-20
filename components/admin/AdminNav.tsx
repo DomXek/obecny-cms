@@ -2,16 +2,27 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   LayoutDashboard,
-  Newspaper, FileCheck, CalendarDays, Image,
+  Newspaper, FileCheck, CalendarDays, Image, GalleryHorizontal,
   Palette, LayoutTemplate, Menu, Paintbrush,
   Users, UserPlus, ShieldCheck,
-  Settings, Sliders,
+  Settings, Sliders, Puzzle,
   LogOut, ChevronDown,
+  Landmark, Recycle, Clock, UtensilsCrossed, GraduationCap, Sparkles,
+  Star, BadgeDollarSign, FolderOpen, Heart,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { PLUGINS, getSiteTypeConfig, type SiteType } from '@/lib/plugins'
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  Newspaper, FileCheck, CalendarDays, Image, GalleryHorizontal,
+  Palette, LayoutTemplate, Menu, Paintbrush,
+  Users, UserPlus, ShieldCheck, Landmark, Recycle,
+  Clock, UtensilsCrossed, GraduationCap, Sparkles,
+  Star, BadgeDollarSign, FolderOpen, Heart,
+}
 
 interface NavItem {
   label: string
@@ -25,56 +36,74 @@ interface NavSection {
   items: NavItem[]
 }
 
-const SECTIONS: NavSection[] = [
-  {
-    label: 'Príspevky',
-    icon: Newspaper,
-    base: '/admin/prispevky',
-    items: [
-      { label: 'Aktuality', href: '/admin/prispevky/aktuality' },
-      { label: 'Zápis na úrednú desku', href: '/admin/prispevky/uradna-deska' },
-      { label: 'Kalendár akcií', href: '/admin/prispevky/kalendar' },
-      { label: 'Media / Galéria', href: '/admin/prispevky/media' },
-    ],
-  },
-  {
-    label: 'Design',
-    icon: Palette,
-    base: '/admin/design',
-    items: [
-      { label: 'Templates', href: '/admin/design/templates' },
-      { label: 'Wireframe', href: '/admin/design/wireframe' },
-      { label: 'Navigačné menu', href: '/admin/design/menu' },
-      { label: 'Footer', href: '/admin/design/footer' },
-      { label: 'Štýl', href: '/admin/design/styl' },
-    ],
-  },
-  {
-    label: 'Užívateľ a role',
-    icon: Users,
-    base: '/admin/uzivatelia',
-    items: [
-      { label: 'Pridať užívateľa', href: '/admin/uzivatelia/pridat' },
-      { label: 'Permissions', href: '/admin/uzivatelia/permissions' },
-    ],
-  },
-  {
-    label: 'General settings',
-    icon: Settings,
-    base: '/admin/nastavenia',
-    items: [
-      { label: 'Hlavné nastavenia', href: '/admin/nastavenia/hlavne' },
-    ],
-  },
-]
+function buildSections(siteType: SiteType, enabledPlugins: string[]): NavSection[] {
+  const enabledSet = new Set(enabledPlugins)
 
-export default function AdminNav() {
+  const prispevkyItems: NavItem[] = PLUGINS
+    .filter(p => {
+      if (!p.navItem) return false
+      const compatible = p.compatibleWith === 'all' || p.compatibleWith.includes(siteType)
+      if (!compatible) return false
+      return p.core || enabledSet.has(p.id)
+    })
+    .map(p => ({ label: p.navItem!.label, href: p.navItem!.href }))
+
+  return [
+    {
+      label: 'Príspevky',
+      icon: Newspaper,
+      base: '/admin/prispevky',
+      items: prispevkyItems,
+    },
+    {
+      label: 'Design',
+      icon: Palette,
+      base: '/admin/design',
+      items: [
+        { label: 'Templates', href: '/admin/design/templates' },
+        { label: 'Wireframe', href: '/admin/design/wireframe' },
+        { label: 'Navigačné menu', href: '/admin/design/menu' },
+        { label: 'Footer', href: '/admin/design/footer' },
+        { label: 'Štýl', href: '/admin/design/styl' },
+      ],
+    },
+    {
+      label: 'Užívateľ a role',
+      icon: Users,
+      base: '/admin/uzivatelia',
+      items: [
+        { label: 'Pridať užívateľa', href: '/admin/uzivatelia/pridat' },
+        { label: 'Permissions', href: '/admin/uzivatelia/permissions' },
+      ],
+    },
+    {
+      label: 'Nastavenia',
+      icon: Settings,
+      base: '/admin/nastavenia',
+      items: [
+        { label: 'Hlavné nastavenia', href: '/admin/nastavenia/hlavne' },
+        { label: 'Pluginy a moduly', href: '/admin/nastavenia/pluginy' },
+      ],
+    },
+  ]
+}
+
+interface Props {
+  siteType: SiteType
+  enabledPlugins: string[]
+}
+
+export default function AdminNav({ siteType, enabledPlugins }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
 
-  // Open the section that contains the current route by default
-  const defaultOpen = SECTIONS.reduce<Record<string, boolean>>((acc, s) => {
+  const sections = useMemo(
+    () => buildSections(siteType, enabledPlugins),
+    [siteType, enabledPlugins],
+  )
+
+  const defaultOpen = sections.reduce<Record<string, boolean>>((acc, s) => {
     acc[s.base] = pathname.startsWith(s.base) ||
       s.items.some(i => pathname === i.href)
     return acc
@@ -91,13 +120,22 @@ export default function AdminNav() {
     router.refresh()
   }
 
+  const stConfig = getSiteTypeConfig(siteType)
+
   return (
     <nav className="w-56 bg-gray-950 border-r border-gray-800 flex flex-col shrink-0 h-full overflow-y-auto">
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-14 shrink-0 border-b border-gray-800">
-        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-sm shrink-0">🏛</div>
+        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-sm shrink-0">
+          {stConfig.icon}
+        </div>
         <span className="text-white text-sm font-semibold truncate">Obecný CMS</span>
+      </div>
+
+      {/* Site type badge */}
+      <div className="px-4 py-2 border-b border-gray-800">
+        <span className={`text-xs font-medium ${stConfig.accentColor}`}>{stConfig.label}</span>
       </div>
 
       {/* Dashboard */}
@@ -117,13 +155,12 @@ export default function AdminNav() {
 
       {/* Sections */}
       <div className="flex-1 px-3 py-2 space-y-0.5">
-        {SECTIONS.map(({ label, icon: Icon, base, items }) => {
+        {sections.map(({ label, icon: Icon, base, items }) => {
           const isOpen = open[base] ?? false
           const sectionActive = pathname.startsWith(base)
 
           return (
             <div key={base}>
-              {/* Section header */}
               <button
                 onClick={() => toggle(base)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
@@ -140,7 +177,6 @@ export default function AdminNav() {
                 />
               </button>
 
-              {/* Sub-items */}
               {isOpen && (
                 <div className="ml-3 pl-3 border-l border-gray-800 mt-0.5 space-y-0.5">
                   {items.map(({ label: itemLabel, href }) => {

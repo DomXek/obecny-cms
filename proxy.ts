@@ -20,14 +20,15 @@ export async function proxy(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const pathname = request.nextUrl.pathname
 
-  // Protect /admin (but not /admin/login redirect stub)
-  if (!user && request.nextUrl.pathname.startsWith('/admin')) {
+  // Protect /admin and /onboarding — require auth
+  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/onboarding'))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Redirect logged-in users away from login
-  if (user && request.nextUrl.pathname === '/login') {
+  if (user && pathname === '/login') {
     return NextResponse.redirect(new URL('/admin', request.url))
   }
 
@@ -35,5 +36,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/login'],
+  matcher: ['/admin/:path*', '/onboarding', '/login'],
 }
