@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { getMyTenantId } from '@/lib/tenant'
 import { Aktualita } from '@/lib/types'
 import { LayoutDashboard, ExternalLink, FileText, Eye, EyeOff, Plus, Layout, Palette, Menu, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -8,14 +9,16 @@ function formatDate(iso: string) {
 }
 
 export default async function DashboardPage() {
+  const tenantId = await getMyTenantId()
   const supabase = createServiceClient()
 
   const [{ count: totalCount }, { count: publishedCount }, { data: recent }] = await Promise.all([
-    supabase.from('aktuality').select('*', { count: 'exact', head: true }),
-    supabase.from('aktuality').select('*', { count: 'exact', head: true }).eq('is_published', true),
+    supabase.from('aktuality').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+    supabase.from('aktuality').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId).eq('is_published', true),
     supabase
       .from('aktuality')
       .select('id, title, slug, is_published, published_at, created_at')
+      .eq('tenant_id', tenantId)
       .order('created_at', { ascending: false })
       .limit(6),
   ])
@@ -34,7 +37,7 @@ export default async function DashboardPage() {
           <span className="text-sm font-semibold">Dashboard</span>
         </div>
         <a
-          href="/"
+          href="/preview"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"

@@ -1,25 +1,24 @@
 import { PageRow, ColumnSlot, COLUMN_LAYOUTS } from '@/lib/types'
-import TextWidget   from './widgets/TextWidget'
-import CtaWidget    from './widgets/CtaWidget'
-import CardsWidget  from './widgets/CardsWidget'
-import NewsWidget   from './widgets/NewsWidget'
+import TextWidget        from './widgets/TextWidget'
+import CtaWidget         from './widgets/CtaWidget'
+import CardsWidget       from './widgets/CardsWidget'
+import NewsWidget        from './widgets/NewsWidget'
 import PlaceholderWidget from './widgets/PlaceholderWidget'
 
-// Blocks that manage their own background — no padding, no card wrapper
 const FULL_BLEED = new Set(['cta'])
 
-function WidgetSwitch({ slot }: { slot: ColumnSlot }) {
+function WidgetSwitch({ slot, tenantId, basePath }: { slot: ColumnSlot; tenantId?: string | null; basePath?: string }) {
   if (!slot.type) return null
   switch (slot.type) {
     case 'text':  return <TextWidget   content={slot.content} />
     case 'cta':   return <CtaWidget    content={slot.content} />
     case 'cards': return <CardsWidget  content={slot.content} />
-    case 'news':  return <NewsWidget />
+    case 'news':  return <NewsWidget   tenantId={tenantId} basePath={basePath} />
     default:      return <PlaceholderWidget type={slot.type} />
   }
 }
 
-function RowRenderer({ row }: { row: PageRow }) {
+function RowRenderer({ row, tenantId, basePath }: { row: PageRow; tenantId?: string | null; basePath?: string }) {
   const widths = COLUMN_LAYOUTS[row.layout]?.cols ?? [100]
   const filledCols = row.columns.filter(c => c.type)
   if (filledCols.length === 0) return null
@@ -39,7 +38,7 @@ function RowRenderer({ row }: { row: PageRow }) {
               boxShadow:    fullBleed ? 'none' : 'var(--shadow)',
             }}
           >
-            <WidgetSwitch slot={col} />
+            <WidgetSwitch slot={col} tenantId={tenantId} basePath={basePath} />
           </div>
         )
       })}
@@ -47,13 +46,13 @@ function RowRenderer({ row }: { row: PageRow }) {
   )
 }
 
-export default function GridRenderer({ rows }: { rows: PageRow[] }) {
+export default function GridRenderer({ rows, tenantId, basePath }: { rows: PageRow[]; tenantId?: string | null; basePath?: string }) {
   if (!rows?.length) return null
 
   return (
     <section className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       {rows.map(row => (
-        <RowRenderer key={row.id} row={row} />
+        <RowRenderer key={row.id} row={row} tenantId={tenantId} basePath={basePath} />
       ))}
     </section>
   )

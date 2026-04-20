@@ -23,7 +23,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Protect /admin and /onboarding — require auth
-  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/onboarding'))) {
+  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/onboarding') || pathname.startsWith('/preview'))) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -36,5 +36,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/onboarding', '/login', '/vytvorit'],
+  matcher: ['/admin/:path*', '/onboarding', '/preview/:path*', '/login', '/vytvorit'],
 }
