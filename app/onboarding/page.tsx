@@ -13,6 +13,7 @@ export default function OnboardingPage() {
   const [selectedType, setSelectedType] = useState<SiteType | null>(null)
   const [enabledPlugins, setEnabledPlugins] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   function selectType(type: SiteType) {
     setSelectedType(type)
@@ -32,6 +33,7 @@ export default function OnboardingPage() {
 
   async function finish() {
     if (!selectedType) return
+    setError('')
     setSaving(true)
     const res = await fetch('/api/admin/onboarding', {
       method: 'POST',
@@ -42,6 +44,8 @@ export default function OnboardingPage() {
       router.push('/admin/dashboard')
       router.refresh()
     } else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? `Chyba ${res.status}`)
       setSaving(false)
     }
   }
@@ -187,6 +191,10 @@ export default function OnboardingPage() {
             <p className="text-center text-gray-600 text-xs mt-6">
               Moduly môžete kedykoľvek zmeniť v Nastavenia → Pluginy
             </p>
+
+            {error && (
+              <p className="text-red-400 text-sm text-center bg-red-900/20 rounded-lg py-2 px-3 mt-4">{error}</p>
+            )}
 
             <div className="mt-6 flex items-center justify-between">
               <button
