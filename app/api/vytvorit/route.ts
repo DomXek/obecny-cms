@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createClient } from '@/lib/supabase/server'
 
 function toSlug(value: string): string {
   return value
@@ -41,9 +40,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Tento slug je už obsadený' }, { status: 409 })
   }
 
-  // Create auth user + sign in
-  const supabase = await createClient()
-  const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
+  // Create user via admin API — synchronous, no email confirmation delay
+  const { data: authData, error: authError } = await service.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  })
 
   if (authError || !authData.user) {
     return NextResponse.json({ error: authError?.message ?? 'Registrácia zlyhala' }, { status: 400 })
@@ -57,18 +59,20 @@ export async function POST(req: Request) {
     .single()
 
   if (tenantError || !tenant) {
-    return NextResponse.json({ error: 'Nepodarilo sa vytvoriť stránku' }, { status: 500 })
+    // Rollback user
+    await service.auth.admin.deleteUser(authData.user.id)
+    return NextResponse.json({ error: tenantError?.message ?? 'Nepodarilo sa vytvoriť stránku' }, { status: 500 })
   }
 
-  // Link user to tenant via profiles (profiles.id = auth.users.id)
-  // Upsert handles case where trigger already created a profile row
+  // Link user to tenant
   const { error: profileError } = await service
     .from('profiles')
     .upsert({ id: authData.user.id, tenant_id: tenant.id, role: 'admin' }, { onConflict: 'id' })
 
   if (profileError) {
+    await service.auth.admin.deleteUser(authData.user.id)
     return NextResponse.json({ error: profileError.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, slug: safeSlug })
+  return NextResponse.json({ ok: true })
 }
