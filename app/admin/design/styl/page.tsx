@@ -1,13 +1,11 @@
-import { createServiceClient } from '@/lib/supabase/service'
-import { DEFAULT_STYLE, SiteStyle } from '@/lib/siteStyle'
+import { getMyTenantId } from '@/lib/tenant'
+import { loadSiteStyle } from '@/lib/loadStyle'
 import StyleEditor from './StyleEditor'
 
 export const dynamic = 'force-dynamic'
 
 export default async function StylPage() {
-  const supabase = createServiceClient()
-  const { data } = await supabase
-    .from('site_settings').select('value').eq('key', 'style').single()
-  const style: SiteStyle = { ...DEFAULT_STYLE, ...(data?.value ?? {}) }
+  const tenantId = await getMyTenantId()
+  const style = await loadSiteStyle(tenantId)
   return <StyleEditor initialStyle={style} />
 }
