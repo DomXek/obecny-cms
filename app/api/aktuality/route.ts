@@ -1,8 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { getMyTenantId } from '@/lib/tenant'
 import { NextResponse } from 'next/server'
 
-// GET /api/aktuality?published=true&limit=10
 export async function GET(request: Request) {
+  const tenantId = await getMyTenantId()
+  if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { searchParams } = new URL(request.url)
   const publishedOnly = searchParams.get('published') === 'true'
   const limit = parseInt(searchParams.get('limit') ?? '50')
@@ -11,6 +14,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('aktuality')
     .select('*')
+    .eq('tenant_id', tenantId)
     .order('published_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(limit)
@@ -22,14 +26,17 @@ export async function GET(request: Request) {
   return NextResponse.json(data ?? [])
 }
 
-// POST /api/aktuality
 export async function POST(request: Request) {
+  const tenantId = await getMyTenantId()
+  if (!tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json()
   const supabase = createServiceClient()
 
   const { data, error } = await supabase
     .from('aktuality')
     .insert({
+      tenant_id: tenantId,
       title: body.title,
       slug: body.slug,
       perex: body.perex ?? null,

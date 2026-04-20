@@ -27,8 +27,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect logged-in users away from login
-  if (user && pathname === '/login') {
+  // Redirect logged-in users away from login/register
+  if (user && (pathname === '/login' || pathname === '/vytvorit')) {
     return NextResponse.redirect(new URL('/admin', request.url))
   }
 
@@ -36,5 +36,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/onboarding', '/login'],
+  matcher: ['/admin/:path*', '/onboarding', '/login', '/vytvorit'],
 }
