@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { GripVertical, X, Edit2 } from 'lucide-react'
 import { Block, WIDGET_DEFS } from '@/lib/types'
-import { COLS, ROW_H, GAP, colWidth, dxToColDelta, dyToRowDelta } from '@/lib/gridUtils'
+import { COLS, ROW_H, GAP, colWidth, xToCol, yToRow, dxToColDelta, dyToRowDelta } from '@/lib/gridUtils'
 
 interface Props {
   block: Block
@@ -22,19 +22,21 @@ export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit 
     if (!canvasEl) return
     e.preventDefault()
     e.stopPropagation()
-
-    const startX = e.clientX
-    const startY = e.clientY
-    const startCol = block.col
-    const startRow = block.row
-    const startColSpan = block.colSpan
     setActive('move')
 
+    // Capture how far inside the block the user clicked (col/row offset)
+    // so the block doesn't snap its top-left corner to the cursor
+    const clickCol = xToCol(e.clientX, canvasEl)
+    const clickRow = yToRow(e.clientY, canvasEl)
+    const colOffset = Math.max(0, clickCol - block.col)
+    const rowOffset = Math.max(0, clickRow - block.row)
+
     function onMove(ev: MouseEvent) {
-      const dc = dxToColDelta(ev.clientX - startX, canvasEl!)
-      const dr = dyToRowDelta(ev.clientY - startY)
-      const newCol = Math.max(0, Math.min(COLS - startColSpan, startCol + dc))
-      const newRow = Math.max(0, startRow + dr)
+      // Use absolute canvas-relative position — immune to scroll drift
+      const targetCol = xToCol(ev.clientX, canvasEl!)
+      const targetRow = yToRow(ev.clientY, canvasEl!)
+      const newCol = Math.max(0, Math.min(COLS - block.colSpan, targetCol - colOffset))
+      const newRow = Math.max(0, targetRow - rowOffset)
       onUpdate({ ...block, col: newCol, row: newRow })
     }
 
@@ -54,13 +56,12 @@ export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit 
     e.preventDefault()
     e.stopPropagation()
 
-    const startX = e.clientX
-    const startSpan = block.colSpan
     setActive('resizeR')
 
     function onMove(ev: MouseEvent) {
-      const dc = dxToColDelta(ev.clientX - startX, canvasEl!)
-      const newSpan = Math.max(1, Math.min(COLS - block.col, startSpan + dc))
+      // Absolute: end col = wherever cursor is now
+      const endCol = xToCol(ev.clientX, canvasEl!)
+      const newSpan = Math.max(1, Math.min(COLS - block.col, endCol - block.col + 1))
       onUpdate({ ...block, colSpan: newSpan })
     }
 
@@ -76,16 +77,16 @@ export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit 
 
   // ── Resize bottom (rowSpan) ──────────────────────────────────────────────
   function startResizeBottom(e: React.MouseEvent) {
+    if (!canvasEl) return
     e.preventDefault()
     e.stopPropagation()
 
-    const startY = e.clientY
-    const startSpan = block.rowSpan
     setActive('resizeB')
 
     function onMove(ev: MouseEvent) {
-      const dr = dyToRowDelta(ev.clientY - startY)
-      const newSpan = Math.max(1, startSpan + dr)
+      // Absolute: bottom row = wherever cursor is now
+      const endRow = yToRow(ev.clientY, canvasEl!)
+      const newSpan = Math.max(1, endRow - block.row + 1)
       onUpdate({ ...block, rowSpan: newSpan })
     }
 
