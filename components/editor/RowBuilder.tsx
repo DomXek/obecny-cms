@@ -294,6 +294,25 @@ function RowEditorComp({
 
         <div className="flex-1" />
 
+        {/* Height control */}
+        <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+          <input
+            type="number"
+            min={80}
+            max={2000}
+            step={10}
+            placeholder="auto"
+            value={row.minHeight ?? ''}
+            onChange={e => {
+              const v = e.target.value
+              onUpdate({ ...row, minHeight: v === '' ? undefined : Math.max(80, parseInt(v)) })
+            }}
+            className="w-16 text-xs text-center border border-gray-200 rounded-lg px-1.5 py-1 outline-none focus:border-blue-400 bg-white text-gray-600"
+            title="Minimálna výška riadku (px)"
+          />
+          <span className="text-[10px] text-gray-400 select-none">px</span>
+        </div>
+
         {/* Move + delete — appear on row hover */}
         <div className="flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
           <button
@@ -324,7 +343,7 @@ function RowEditorComp({
       </div>
 
       {/* Columns */}
-      <div className="flex gap-3 p-3">
+      <div className="flex gap-3 p-3" style={row.minHeight ? { minHeight: row.minHeight } : undefined}>
         {row.columns.map((col, i) => (
           <ColumnSlotUI
             key={col.id}

@@ -25,7 +25,7 @@ function RowRenderer({ row }: { row: PageRow }) {
   if (filledCols.length === 0) return null
 
   return (
-    <div className="flex gap-6 items-start">
+    <div className="flex gap-6 items-stretch" style={row.minHeight ? { minHeight: row.minHeight } : undefined}>
       {row.columns.map((col, i) => {
         if (!col.type) return null
         const fullBleed = FULL_BLEED.has(col.type)

@@ -33,6 +33,7 @@ export interface PageRow {
   id: string
   layout: LayoutKey
   columns: ColumnSlot[]
+  minHeight?: number   // px, optional — defaults to content height
 }
 
 // ── Legacy block (kept for DB migration only) ─────────────────────────────────
