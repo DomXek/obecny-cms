@@ -27,7 +27,7 @@ export default async function PublicPage({ params }: { params: Promise<{ slug: s
       <StyleInjector style={style} />
       <NavRenderer nav={layout.nav} siteName={page.title} />
       <HeroRenderer hero={layout.hero} />
-      <GridRenderer blocks={layout.blocks ?? []} />
+      <GridRenderer rows={(layout as any).rows ?? []} />
     </div>
   )
 }

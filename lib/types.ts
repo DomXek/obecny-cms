@@ -9,19 +9,63 @@ export type WidgetType =
   | 'contact'
   | 'map'
 
-export interface Widget {
-  type: WidgetType
+// ── Column layouts ────────────────────────────────────────────────────────────
+
+export const COLUMN_LAYOUTS: Record<string, { cols: number[]; label: string }> = {
+  '1':    { cols: [100],        label: '100%' },
+  '½½':   { cols: [50, 50],     label: '50 / 50' },
+  '⅓⅔':   { cols: [33, 67],     label: '33 / 67' },
+  '⅔⅓':   { cols: [67, 33],     label: '67 / 33' },
+  '¼¾':   { cols: [25, 75],     label: '25 / 75' },
+  '¾¼':   { cols: [75, 25],     label: '75 / 25' },
+  '⅓⅓⅓':  { cols: [33, 33, 34], label: '33 / 33 / 33' },
+}
+
+export type LayoutKey = keyof typeof COLUMN_LAYOUTS
+
+export interface ColumnSlot {
+  id: string
+  type: WidgetType | null
   content: Record<string, unknown>
 }
 
+export interface PageRow {
+  id: string
+  layout: LayoutKey
+  columns: ColumnSlot[]
+}
+
+// ── Legacy block (kept for DB migration only) ─────────────────────────────────
 export interface Block {
   id: string
   type: WidgetType
-  col: number       // 0–11  (which column it starts at)
-  row: number       // 0+    (which row it starts at)
-  colSpan: number   // 1–12  (how many columns wide)
-  rowSpan: number   // 1+    (how many rows tall)
+  col: number
+  row: number
+  colSpan: number
+  rowSpan: number
   content: Record<string, unknown>
+}
+
+// Convert old blocks[] layout to new rows[] layout
+export function migrateLayout(l: PageLayout & { blocks?: Block[] }): PageLayout {
+  if (l.rows) return { nav: l.nav, hero: l.hero, rows: l.rows }
+  return {
+    nav:  l.nav,
+    hero: l.hero,
+    rows: (l.blocks ?? []).map(b => ({
+      id:      b.id,
+      layout:  '1' as LayoutKey,
+      columns: [{ id: uid(), type: b.type, content: b.content }],
+    })),
+  }
+}
+
+// Change row to a different column layout, preserving existing content
+export function changeRowLayout(row: PageRow, newLayout: LayoutKey): PageRow {
+  const count = COLUMN_LAYOUTS[newLayout].cols.length
+  const cols  = [...row.columns]
+  while (cols.length < count) cols.push({ id: uid(), type: null, content: {} })
+  return { ...row, layout: newLayout, columns: cols.slice(0, count) }
 }
 
 export interface NavItem {
@@ -53,7 +97,7 @@ export interface HeroConfig {
 export interface PageLayout {
   nav: NavConfig
   hero: HeroConfig
-  blocks: Block[]
+  rows: PageRow[]
 }
 
 export interface Aktualita {

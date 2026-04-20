@@ -29,7 +29,7 @@ export default async function HomePage() {
       <NavRenderer nav={layout.nav} siteName={page.title} />
       <main className="flex-1">
         <HeroRenderer hero={layout.hero} />
-        <GridRenderer blocks={layout.blocks ?? []} />
+        <GridRenderer rows={(layout as any).rows ?? []} />
       </main>
       <FooterRenderer footer={footer} />
     </div>
