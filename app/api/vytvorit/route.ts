@@ -61,12 +61,13 @@ export async function POST(req: Request) {
   }
 
   // Link user to tenant via profiles (profiles.id = auth.users.id)
+  // Upsert handles case where trigger already created a profile row
   const { error: profileError } = await service
     .from('profiles')
-    .insert({ id: authData.user.id, tenant_id: tenant.id, role: 'admin' })
+    .upsert({ id: authData.user.id, tenant_id: tenant.id, role: 'admin' }, { onConflict: 'id' })
 
   if (profileError) {
-    return NextResponse.json({ error: 'Nepodarilo sa prepojiť účet' }, { status: 500 })
+    return NextResponse.json({ error: profileError.message }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, slug: safeSlug })
