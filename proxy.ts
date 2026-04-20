@@ -27,8 +27,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect logged-in users away from login/register
-  if (user && (pathname === '/login' || pathname === '/vytvorit')) {
+  // Redirect logged-in users away from login only
+  if (user && pathname === '/login') {
     return NextResponse.redirect(new URL('/admin', request.url))
   }
 

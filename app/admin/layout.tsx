@@ -5,7 +5,7 @@ import { getMyTenantId } from '@/lib/tenant'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const tenantId = await getMyTenantId()
-  if (!tenantId) redirect('/login')
+  if (!tenantId) redirect('/vytvorit')
 
   const [siteType, enabledPlugins] = await Promise.all([
     getSiteType(tenantId),
