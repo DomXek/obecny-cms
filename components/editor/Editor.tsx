@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   DndContext, DragOverlay, useSensor, useSensors, PointerSensor,
   useDroppable,
@@ -140,7 +140,14 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
   const [editingId, setEditingId] = useState<string | null>(null)
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
+  const cursorRef = useRef({ x: 0, y: 0 })
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  useEffect(() => {
+    const track = (e: PointerEvent) => { cursorRef.current = { x: e.clientX, y: e.clientY } }
+    window.addEventListener('pointermove', track, { passive: true })
+    return () => window.removeEventListener('pointermove', track)
+  }, [])
 
   // ── Save ─────────────────────────────────────────────────────────────────
   async function save() {
@@ -180,15 +187,12 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     }))
   }
 
-  // ── Compute drop position from drag event ─────────────────────────────────
-  function dropPos(e: { activatorEvent: Event; delta: { x: number; y: number } }) {
+  // ── Compute drop position from live cursor position ───────────────────────
+  function dropPos() {
     if (!canvasRef.current) return { col: 0, row: 0 }
-    const ae = e.activatorEvent as MouseEvent
-    const cx = ae.clientX + e.delta.x
-    const cy = ae.clientY + e.delta.y
     return {
-      col: xToCol(cx, canvasRef.current),
-      row: yToRow(cy, canvasRef.current),
+      col: xToCol(cursorRef.current.x, canvasRef.current),
+      row: yToRow(cursorRef.current.y, canvasRef.current),
     }
   }
 
@@ -202,7 +206,7 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
   function onDragMove(e: { activatorEvent: Event; delta: { x: number; y: number }; over: { id: string } | null }) {
     if (!draggingType || !canvasRef.current) return
     if (e.over?.id !== 'canvas') { setGhost(null); return }
-    const { col, row } = dropPos(e)
+    const { col, row } = dropPos()
     const colSpan = Math.min(6, COLS - col)
     setGhost({ col, row, colSpan, rowSpan: 2 })
   }
@@ -212,7 +216,7 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: P
     setDraggingType(null)
     setGhost(null)
     if (active.data.current?.from === 'sidebar' && over?.id === 'canvas') {
-      const { col, row } = dropPos(e as never)
+      const { col, row } = dropPos()
       addBlock(active.data.current.widgetType as WidgetType, col, row)
     }
   }
