@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function GridBlock({ block, canvasEl, onUpdate, onDelete, onEdit }: Props) {
-  const def = WIDGET_DEFS[block.type]
+  const def = WIDGET_DEFS[block.type as keyof typeof WIDGET_DEFS] ?? { label: block.type, icon: '📦', description: '' }
   const [active, setActive] = useState<'move' | 'resizeR' | 'resizeB' | null>(null)
 
   // ── Move ─────────────────────────────────────────────────────────────────

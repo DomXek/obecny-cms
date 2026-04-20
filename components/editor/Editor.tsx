@@ -120,11 +120,19 @@ function Canvas({
   )
 }
 
+// ── Sanitize layout — remove blocks with obsolete/unknown widget types ────────
+function sanitizeLayout(l: PageLayout | null): PageLayout {
+  if (!l) return DEFAULT_LAYOUT
+  const knownTypes = new Set(Object.keys(WIDGET_DEFS))
+  return {
+    ...l,
+    blocks: (l.blocks ?? []).filter(b => knownTypes.has(b.type)),
+  }
+}
+
 // ── Main Editor ───────────────────────────────────────────────────────────────
 export default function Editor({ pageId, pageSlug, pageTitle, initialLayout }: Props) {
-  const [layout, setLayout] = useState<PageLayout>(
-    initialLayout?.blocks !== undefined ? initialLayout : DEFAULT_LAYOUT
-  )
+  const [layout, setLayout] = useState<PageLayout>(sanitizeLayout(initialLayout))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [draggingType, setDraggingType] = useState<WidgetType | null>(null)
