@@ -7,6 +7,7 @@ import { PageLayout } from '@/lib/types'
 import StyleInjector from '@/components/public/StyleInjector'
 import NavRenderer from '@/components/public/NavRenderer'
 import FooterRenderer from '@/components/public/FooterRenderer'
+import CookieBanner from '@/components/public/CookieBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,7 @@ export default async function PreviewLayout({ children }: { children: React.Reac
       <NavRenderer nav={nav} siteName={homePage?.title ?? 'Web'} />
       <main className="flex-1">{children}</main>
       <FooterRenderer footer={footer} />
+      <CookieBanner />
     </div>
   )
 }

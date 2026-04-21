@@ -9,7 +9,7 @@ import {
   Palette, LayoutTemplate, Menu, Paintbrush,
   Users, UserPlus, ShieldCheck,
   Settings, Sliders, Puzzle,
-  LogOut, ChevronDown,
+  LogOut, ChevronDown, Mail,
   Landmark, Recycle, Clock, UtensilsCrossed, GraduationCap, Sparkles,
   Star, BadgeDollarSign, FolderOpen, Heart,
 } from 'lucide-react'
@@ -62,6 +62,7 @@ function buildSections(siteType: SiteType, enabledPlugins: string[]): NavSection
       items: [
         { label: 'Templates', href: '/admin/design/templates' },
         { label: 'Wireframe', href: '/admin/design/wireframe' },
+        { label: 'Stránky', href: '/admin/stranky' },
         { label: 'Navigačné menu', href: '/admin/design/menu' },
         { label: 'Footer', href: '/admin/design/footer' },
         { label: 'Štýl', href: '/admin/design/styl' },
@@ -105,7 +106,7 @@ export default function AdminNav({ siteType, enabledPlugins }: Props) {
 
   const defaultOpen = sections.reduce<Record<string, boolean>>((acc, s) => {
     acc[s.base] = pathname.startsWith(s.base) ||
-      s.items.some(i => pathname === i.href)
+      s.items.some(i => pathname.startsWith(i.href))
     return acc
   }, {})
   const [open, setOpen] = useState<Record<string, boolean>>(defaultOpen)
@@ -157,7 +158,8 @@ export default function AdminNav({ siteType, enabledPlugins }: Props) {
       <div className="flex-1 px-3 py-2 space-y-0.5">
         {sections.map(({ label, icon: Icon, base, items }) => {
           const isOpen = open[base] ?? false
-          const sectionActive = pathname.startsWith(base)
+          const sectionActive = pathname.startsWith(base) ||
+            items.some(i => pathname.startsWith(i.href))
 
           return (
             <div key={base}>

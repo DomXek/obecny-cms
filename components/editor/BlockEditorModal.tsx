@@ -33,6 +33,81 @@ function TextInput({ value, onChange, placeholder }: { value: string; onChange: 
   )
 }
 
+// ── Image panel ───────────────────────────────────────────────────────────────
+
+function ImagePanel({ block, onUpdate }: { block: Block; onUpdate: (b: Block) => void }) {
+  const c = block.content
+  function set(key: string, value: unknown) {
+    onUpdate({ ...block, content: { ...c, [key]: value } })
+  }
+  return (
+    <div>
+      <Field label="URL obrázka">
+        <TextInput value={(c.url as string) ?? ''} onChange={v => set('url', v)} placeholder="https://..." />
+      </Field>
+      {(c.url as string) && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={c.url as string} alt="" className="w-full rounded-lg object-cover mb-4 max-h-40" />
+      )}
+      <Field label="Alt text (pre SEO a prístupnosť)">
+        <TextInput value={(c.alt as string) ?? ''} onChange={v => set('alt', v)} placeholder="Popis obrázka" />
+      </Field>
+      <Field label="Popis pod obrázkom (voliteľné)">
+        <TextInput value={(c.caption as string) ?? ''} onChange={v => set('caption', v)} placeholder="Foto: ..." />
+      </Field>
+    </div>
+  )
+}
+
+// ── Button panel ──────────────────────────────────────────────────────────────
+
+function ButtonPanel({ block, onUpdate }: { block: Block; onUpdate: (b: Block) => void }) {
+  const c = block.content
+  function set(key: string, value: unknown) {
+    onUpdate({ ...block, content: { ...c, [key]: value } })
+  }
+  return (
+    <div>
+      <Field label="Text tlačidla">
+        <TextInput value={(c.label as string) ?? ''} onChange={v => set('label', v)} placeholder="Kliknite tu" />
+      </Field>
+      <Field label="URL odkaz">
+        <TextInput value={(c.url as string) ?? ''} onChange={v => set('url', v)} placeholder="/kontakt" />
+      </Field>
+      <Field label="Zarovnanie">
+        <div className="flex gap-2">
+          {(['left', 'center', 'right'] as const).map(a => (
+            <button key={a} onClick={() => set('align', a)}
+              className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
+                (c.align ?? 'center') === a
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {a === 'left' ? 'Vľavo' : a === 'right' ? 'Vpravo' : 'Stred'}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Variant">
+        <div className="flex gap-2">
+          {(['primary', 'secondary'] as const).map(v => (
+            <button key={v} onClick={() => set('variant', v)}
+              className={`flex-1 py-2 text-sm rounded-lg border transition-colors ${
+                (c.variant ?? 'primary') === v
+                  ? 'border-blue-500 bg-blue-50 text-blue-700 font-semibold'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {v === 'primary' ? 'Primárne' : 'Sekundárne'}
+            </button>
+          ))}
+        </div>
+      </Field>
+    </div>
+  )
+}
+
 // ── CTA panel ─────────────────────────────────────────────────────────────────
 
 function CtaPanel({ block, onUpdate }: { block: Block; onUpdate: (b: Block) => void }) {
@@ -179,8 +254,10 @@ function CardsPanel({ block, onUpdate }: { block: Block; onUpdate: (b: Block) =>
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 const TITLES: Partial<Record<string, string>> = {
-  cta:   'CTA sekcia',
-  cards: 'Karty',
+  cta:    'CTA sekcia',
+  cards:  'Karty',
+  image:  'Obrázok',
+  button: 'Tlačidlo',
 }
 
 export default function BlockEditorModal({ block, onUpdate, onClose }: Props) {
@@ -204,8 +281,10 @@ export default function BlockEditorModal({ block, onUpdate, onClose }: Props) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          {block.type === 'cta'   && <CtaPanel   block={block} onUpdate={onUpdate} />}
-          {block.type === 'cards'      && <CardsPanel     block={block} onUpdate={onUpdate} />}
+          {block.type === 'image'  && <ImagePanel  block={block} onUpdate={onUpdate} />}
+          {block.type === 'button' && <ButtonPanel block={block} onUpdate={onUpdate} />}
+          {block.type === 'cta'    && <CtaPanel    block={block} onUpdate={onUpdate} />}
+          {block.type === 'cards'  && <CardsPanel  block={block} onUpdate={onUpdate} />}
         </div>
       </div>
     </div>

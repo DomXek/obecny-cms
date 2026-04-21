@@ -1,5 +1,8 @@
 export type WidgetType =
   | 'text'
+  | 'image'
+  | 'button'
+  | 'divider'
   | 'cta'
   | 'cards'
   | 'notices'
@@ -95,10 +98,16 @@ export interface HeroConfig {
   bgOverlay?: number // dark overlay opacity 0–100 (default 40)
 }
 
+export interface SeoConfig {
+  metaTitle?: string
+  metaDescription?: string
+}
+
 export interface PageLayout {
   nav: NavConfig
   hero: HeroConfig
   rows: PageRow[]
+  seo?: SeoConfig
 }
 
 export interface Aktualita {
@@ -132,6 +141,24 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
     icon: '¶',
     description: 'Textový blok s formátovaním',
     defaultContent: { html: '<h2>Nadpis sekcie</h2><p>Tu napíšte váš text. Kliknite pre editáciu.</p>' },
+  },
+  image: {
+    label: 'Obrázok',
+    icon: '🖼️',
+    description: 'Obrázok s voliteľným popisom',
+    defaultContent: { url: '', alt: '', caption: '' },
+  },
+  button: {
+    label: 'Tlačidlo',
+    icon: '🔘',
+    description: 'CTA tlačidlo s odkazom',
+    defaultContent: { label: 'Kliknite tu', url: '/', align: 'center', variant: 'primary' },
+  },
+  divider: {
+    label: 'Oddeľovač',
+    icon: '➖',
+    description: 'Horizontálny oddeľovač sekcií',
+    defaultContent: { style: 'line', spacing: 'md' },
   },
   cta: {
     label: 'CTA sekcia',
@@ -201,7 +228,7 @@ export const WIDGET_DEFS: Record<WidgetType, { label: string; icon: string; desc
 }
 
 export const WIDGET_GROUPS: { label: string; types: WidgetType[] }[] = [
-  { label: 'Základné', types: ['text', 'cta', 'cards'] },
+  { label: 'Základné', types: ['text', 'image', 'button', 'divider', 'cta', 'cards'] },
   { label: 'Novinky & Udalosti', types: ['news', 'events'] },
   { label: 'Špeciálne moduly', types: ['notices', 'gallery', 'contact', 'map'] },
 ]

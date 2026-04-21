@@ -1,17 +1,18 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getMyTenantId } from '@/lib/tenant'
-import StrankyClient from './StrankyClient'
+import SpravyClient from './SpravyClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function StrankyPage() {
+export default async function SpravyPage() {
   const tenantId = await getMyTenantId()
   const supabase = createServiceClient()
   const { data } = await supabase
-    .from('pages')
-    .select('id, slug, title, is_published, updated_at')
+    .from('contact_messages')
+    .select('*')
     .eq('tenant_id', tenantId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(100)
 
-  return <StrankyClient initialPages={data ?? []} />
+  return <SpravyClient initialMessages={data ?? []} />
 }

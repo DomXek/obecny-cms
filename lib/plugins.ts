@@ -81,6 +81,15 @@ export const PLUGINS: Plugin[] = [
     core: true,
   },
   {
+    id: 'spravy',
+    label: 'Správy',
+    description: 'Správy z kontaktného formulára.',
+    icon: '✉️',
+    navItem: { label: 'Správy', href: '/admin/prispevky/spravy', iconName: 'Mail' },
+    compatibleWith: 'all',
+    core: true,
+  },
+  {
     id: 'stranky',
     label: 'Stránky',
     description: 'Statické stránky s page builderom.',

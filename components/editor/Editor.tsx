@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   DndContext, DragOverlay, useSensor, useSensors, PointerSensor,
   type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core'
-import { Eye, Save, Check } from 'lucide-react'
+import { Eye, Save, Check, Globe, EyeOff } from 'lucide-react'
 import {
   PageLayout, PageRow, ColumnSlot, LayoutKey,
   COLUMN_LAYOUTS, WIDGET_DEFS, WidgetType, uid,
@@ -16,10 +16,11 @@ import RowBuilder from './RowBuilder'
 import TextEditor from './TextEditor'
 import HeroEditor from './HeroEditor'
 import NavEditor from './NavEditor'
+import SeoEditor from './SeoEditor'
 import BlockEditorModal from './BlockEditorModal'
 import type { Block } from '@/lib/types'
 
-const BLOCK_EDITOR_TYPES = new Set(['cta', 'cards'])
+const BLOCK_EDITOR_TYPES = new Set(['cta', 'cards', 'image', 'button'])
 
 const DEFAULT_LAYOUT: PageLayout = {
   nav:  { position: 'center', items: [{ label: 'Domov', slug: 'domov' }] },
@@ -28,40 +29,72 @@ const DEFAULT_LAYOUT: PageLayout = {
 }
 
 interface Props {
-  pageId:         string
-  pageSlug:       string
-  pageTitle:      string
-  initialLayout:  PageLayout | null
-  enabledPlugins: string[]
+  pageId:          string
+  pageSlug:        string
+  pageTitle:       string
+  initialLayout:   PageLayout | null
+  initialPublished?: boolean
+  enabledPlugins:  string[]
 }
 
 interface EditTarget { rowId: string; colIdx: number }
 
 // ── Main Editor ───────────────────────────────────────────────────────────────
 
-export default function Editor({ pageId, pageSlug, pageTitle, initialLayout, enabledPlugins }: Props) {
+export default function Editor({ pageId, pageSlug, pageTitle, initialLayout, initialPublished, enabledPlugins }: Props) {
   const [layout, setLayout] = useState<PageLayout>(() =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     migrateLayout((initialLayout ?? DEFAULT_LAYOUT) as any)
   )
   const [saving,       setSaving]       = useState(false)
   const [saved,        setSaved]        = useState(false)
+  const [published,    setPublished]    = useState(initialPublished ?? true)
   const [draggingType, setDraggingType] = useState<WidgetType | null>(null)
   const [editTarget,   setEditTarget]   = useState<EditTarget | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // ── Save ──────────────────────────────────────────────────────────────────
-  async function save() {
-    setSaving(true)
+  const saveLayout = useCallback(async (l: PageLayout) => {
     await fetch(`/api/pages/slug?slug=${pageSlug}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ layout }),
+      body:    JSON.stringify({ layout: l }),
     })
+  }, [pageSlug])
+
+  async function save() {
+    setSaving(true)
+    await saveLayout(layout)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+  }
+
+  // ── Autosave (30s debounce) ────────────────────────────────────────────────
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const layoutRef = useRef(layout)
+  layoutRef.current = layout
+
+  useEffect(() => {
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = setTimeout(() => {
+      saveLayout(layoutRef.current)
+    }, 30_000)
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    }
+  }, [layout, saveLayout])
+
+  // ── Publish / unpublish ───────────────────────────────────────────────────
+  async function togglePublish() {
+    const next = !published
+    setPublished(next)
+    await fetch(`/api/pages?id=${pageId}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ is_published: next }),
+    })
   }
 
   // ── Row CRUD ──────────────────────────────────────────────────────────────
@@ -210,6 +243,18 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout, ena
               >
                 <Eye size={14} /> Náhľad
               </a>
+              {pageId && (
+                <button
+                  onClick={togglePublish}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                    published
+                      ? 'border-green-700 text-green-400 hover:bg-green-900/20'
+                      : 'border-gray-700 text-gray-400 hover:text-white hover:border-gray-600'
+                  }`}
+                >
+                  {published ? <><Globe size={14} />Publikované</> : <><EyeOff size={14} />Nepublikované</>}
+                </button>
+              )}
               <button
                 onClick={save}
                 disabled={saving}
@@ -239,6 +284,12 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout, ena
               <HeroEditor
                 hero={layout.hero}
                 onChange={hero => setLayout(l => ({ ...l, hero }))}
+              />
+
+              <SeoEditor
+                seo={layout.seo ?? {}}
+                pageTitle={pageTitle}
+                onChange={seo => setLayout(l => ({ ...l, seo }))}
               />
 
               <RowBuilder
