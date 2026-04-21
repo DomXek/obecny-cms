@@ -203,7 +203,7 @@ export default function Editor({ pageId, pageSlug, pageTitle, initialLayout, ena
             </div>
             <div className="flex items-center gap-2">
               <a
-                href={`/${pageSlug}?preview=1`}
+                href={pageSlug === 'domov' ? '/preview' : `/preview/${pageSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-600 rounded-lg transition-colors"
